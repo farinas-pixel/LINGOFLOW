@@ -195,3 +195,28 @@ stableSource = stableSource.replace(/\n\s*catalogLabelAnchorsRef\.current\.forEa
 stableSource = stableSource.replace(/\n\s*catalogLabelAnchorsRef\.current = \[\];\n\s*catalogLanguageLabelsRef\.current = \[\];/m, '');
 write(stableSolar, stableSource);
 console.log('LingoFlow catalog label stability patch applied');
+
+const virtualLabelSolar = 'src/components/solar/LanguageSolarSystem.tsx';
+let virtualSource = read(virtualLabelSolar);
+if (!virtualSource.includes('catalogLabelPoolRef')) {
+  virtualSource = virtualSource.replace(
+    "  const catalogPointsRef = useRef<THREE.Points | null>(null);",
+    "  const catalogPointsRef = useRef<THREE.Points | null>(null);\n  const catalogLabelPoolRef = useRef<{ anchor: THREE.Object3D; label: CSS2DObject }[]>([]);"
+  );
+  virtualSource = virtualSource.replace(
+    "      catalogPointsRef.current = points;",
+    "      catalogPointsRef.current = points;\n      const poolSize = mobile ? 72 : 180;\n      for (let i = 0; i < Math.min(poolSize, catalogEntries.length); i += 1) {\n        const anchor = new THREE.Object3D();\n        const el = document.createElement('div');\n        el.className = 'lingoflow-language-label lingoflow-catalog-label';\n        const label = new CSS2DObject(el);\n        label.userData.language = null;\n        label.userData.catalogIndex = -1;\n        anchor.add(label); orbitGroup.add(anchor);\n        catalogLabelPoolRef.current.push({ anchor, label });\n      }"
+  );
+  const anchor = "      const catalogPoints = catalogPointsRef.current;";
+  const replacement = "      const catalogPoints = catalogPointsRef.current;\n      if (catalogEntries.length && catalogLabelPoolRef.current.length && (performance.now() % 240 < 18)) {\n        const candidates = catalogEntries.map((lang, index) => {\n          const radius = ORBIT_RADII[Math.max(0, Math.min(ORBIT_RADII.length - 1, lang.orbitIndex - 1))];\n          const local = new THREE.Vector3(Math.cos(lang.initialAngle) * radius, (lang.orbitIndex - 2.5) * 8, Math.sin(lang.initialAngle) * radius);\n          const world = local.clone(); orbitGroup.localToWorld(world);\n          const projected = world.clone().project(camera);\n          return { lang, index, local, distance: camera.position.distanceTo(world), inView: projected.z > -1 && projected.z < 1 && projected.x > -1.08 && projected.x < 1.08 && projected.y > -1.08 && projected.y < 1.08 };\n        }).filter((item) => item.inView).sort((a,b) => a.distance - b.distance);\n        const visible = candidates.slice(0, catalogLabelPoolRef.current.length);\n        catalogLabelPoolRef.current.forEach((slot, slotIndex) => {\n          const item = visible[slotIndex];\n          if (!item) { slot.label.element.style.opacity = '0'; slot.label.userData.catalogIndex = -1; return; }\n          slot.anchor.position.copy(item.local); slot.label.position.set(0, 5, 0);\n          slot.label.userData.language = item.lang; slot.label.userData.catalogIndex = item.index;\n          slot.label.element.textContent = item.lang.name; slot.label.element.style.setProperty('--label-color', item.lang.color);\n          const active = item.lang.code === st.sourceLanguageCode || item.lang.code === st.targetLanguageCode;\n          const matches = st.matching.size === 0 || st.matching.has(item.lang.code);\n          slot.label.element.style.opacity = active ? '1' : matches ? '0.78' : '0.22';\n          slot.label.element.classList.toggle('is-active', active);\n        });\n      }";
+  if (!virtualSource.includes(replacement)) {
+    if (!virtualSource.includes(anchor)) throw new Error('Virtual label render anchor missing');
+    virtualSource = virtualSource.replace(anchor, replacement);
+  }
+  virtualSource = virtualSource.replace(
+    "      catalogPointsRef.current = null;\n      sceneRef.current = null;",
+    "      catalogPointsRef.current = null;\n      catalogLabelPoolRef.current.forEach(({ anchor }) => anchor.removeFromParent());\n      catalogLabelPoolRef.current = [];\n      sceneRef.current = null;"
+  );
+  write(virtualLabelSolar, virtualSource);
+}
+console.log('LingoFlow virtualized world-language label layer applied');

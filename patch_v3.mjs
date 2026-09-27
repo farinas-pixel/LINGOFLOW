@@ -75,4 +75,66 @@ once(app, "import { ServiceRegistryView } from './features/workspace/ServiceRegi
 once(app, "        {activeView === 'architecture' && <ArchitectureExplorer />}\n", '');
 once(app, "        {activeView === 'services' && <ServiceRegistryView />}\n", '');
 for (const file of ['src/features/workspace/ArchitectureExplorer.tsx','src/features/workspace/ServiceRegistryView.tsx']) { const target=path.join(root,file); if(fs.existsSync(target)) fs.unlinkSync(target); }
+
+const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
+const solarFile = read(solarPath);
+const planetBlock = /    const planets: PlanetObject\[\] = \[\];[\s\S]*?    planetsRef\.current = planets;/;
+const optimizedPlanetBlock = `    const planets: PlanetObject[] = [];
+    const catalogEntries = [];
+    const pointPositions = [];
+    const pointColors = [];
+    worldCatalog.forEach((lang) => {
+      const isSupported = SUPPORTED_LANGUAGES.some((item) => item.code === lang.code);
+      const radius = ORBIT_RADII[Math.max(0, Math.min(ORBIT_RADII.length - 1, lang.orbitIndex - 1))];
+      const x = Math.cos(lang.initialAngle) * radius;
+      const y = (lang.orbitIndex - 2.5) * 8;
+      const z = Math.sin(lang.initialAngle) * radius;
+      if (isSupported) {
+        const geometry = new THREE.SphereGeometry(lang.size * 1.35, 20, 20);
+        const material = new THREE.MeshStandardMaterial({ color: new THREE.Color(lang.color), emissive: new THREE.Color(lang.color), emissiveIntensity: 0.32, roughness: 0.58, metalness: 0.18 });
+        const planet = new THREE.Mesh(geometry, material) as PlanetObject;
+        planet.userData.language = lang;
+        planet.userData.isSupported = true;
+        planet.userData.radius = radius;
+        planet.userData.angle = lang.initialAngle;
+        planet.position.set(x, y, z);
+        orbitGroup.add(planet);
+        planets.push(planet);
+      } else {
+        catalogEntries.push(lang);
+        pointPositions.push(x, y, z);
+        const c = new THREE.Color(lang.color);
+        pointColors.push(c.r, c.g, c.b);
+      }
+    });
+    planetsRef.current = planets;
+    if (catalogEntries.length) {
+      const pointGeometry = new THREE.BufferGeometry();
+      pointGeometry.setAttribute('position', new THREE.Float32BufferAttribute(pointPositions, 3));
+      pointGeometry.setAttribute('color', new THREE.Float32BufferAttribute(pointColors, 3));
+      const points = new THREE.Points(pointGeometry, new THREE.PointsMaterial({ size: mobile ? 3.4 : 4.5, vertexColors: true, transparent: true, opacity: 0.72, sizeAttenuation: true }));
+      points.userData.languages = catalogEntries;
+      orbitGroup.add(points);
+      catalogPointsRef.current = points;
+    }`;
+if (!planetBlock.test(solarFile)) throw new Error('Optimized planet block anchor missing');
+write(solarPath, solarFile.replace(planetBlock, optimizedPlanetBlock));
+
+once(solarPath,
+  "      const hit = raycaster.current.intersectObjects(planets, false)[0]?.object as PlanetObject | undefined;\n      setHoveredLanguage(hit?.userData.language ?? null);",
+  "      const meshHit = raycaster.current.intersectObjects(planets, false)[0]?.object;\n      const pointHit = catalogPointsRef.current ? raycaster.current.intersectObject(catalogPointsRef.current, false)[0] : undefined;\n      const catalogLanguage = pointHit && typeof pointHit.index === 'number' ? catalogPointsRef.current?.userData.languages?.[pointHit.index] : undefined;\n      setHoveredLanguage(meshHit?.userData?.language ?? catalogLanguage ?? null);"
+);
+
+once(solarPath,
+  "    const onClick = () => { raycaster.current.setFromCamera(pointer.current, camera); const hit = raycaster.current.intersectObjects(planets, false)[0]?.object as PlanetObject | undefined; if (hit) setSelectedPlanet(hit.userData.language); };",
+  "    const onClick = () => { raycaster.current.setFromCamera(pointer.current, camera); const hit = raycaster.current.intersectObjects(planets, false)[0]?.object; if (hit?.userData?.language) { setSelectedPlanet(hit.userData.language); return; } if (catalogPointsRef.current) { const pointHit = raycaster.current.intersectObject(catalogPointsRef.current, false)[0]; if (pointHit && typeof pointHit.index === 'number') { const language = catalogPointsRef.current.userData.languages?.[pointHit.index]; if (language) setSelectedPlanet(language); } } };"
+);
+
+const animateAnchor = "      core.rotation.y += dt * 0.15;";
+once(solarPath, animateAnchor,
+  "      const catalogPoints = catalogPointsRef.current;\n      if (catalogPoints) { const colors = catalogPoints.geometry.getAttribute('color'); const languages = catalogPoints.userData.languages || []; for (let i = 0; i < languages.length; i += 1) { const lang = languages[i]; const matches = st.matching.size === 0 || st.matching.has(lang.code); const base = new THREE.Color(lang.color); const factor = matches ? 0.8 : 0.08; colors.setXYZ(i, base.r * factor, base.g * factor, base.b * factor); } colors.needsUpdate = true; }\n      core.rotation.y += dt * 0.15;"
+);
+
+once(solarPath, "      catalogPointsRef.current = null;\n", "      catalogPointsRef.current = null;\n");
+
 console.log('LingoFlow v3 patch applied');

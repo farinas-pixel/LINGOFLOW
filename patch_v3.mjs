@@ -130,11 +130,4 @@ once(solarPath,
   "    const onClick = () => { raycaster.current.setFromCamera(pointer.current, camera); const hit = raycaster.current.intersectObjects(planets, false)[0]?.object; if (hit?.userData?.language) { setSelectedPlanet(hit.userData.language); return; } if (catalogPointsRef.current) { const pointHit = raycaster.current.intersectObject(catalogPointsRef.current, false)[0]; if (pointHit && typeof pointHit.index === 'number') { const language = catalogPointsRef.current.userData.languages?.[pointHit.index]; if (language) setSelectedPlanet(language); } } };"
 );
 
-const animateAnchor = "      core.rotation.y += dt * 0.15;";
-once(solarPath, animateAnchor,
-  "      const catalogPoints = catalogPointsRef.current;\n      if (catalogPoints) { const colors = catalogPoints.geometry.getAttribute('color'); const languages = catalogPoints.userData.languages || []; for (let i = 0; i < languages.length; i += 1) { const lang = languages[i]; const matches = st.matching.size === 0 || st.matching.has(lang.code); const base = new THREE.Color(lang.color); const factor = matches ? 0.8 : 0.08; colors.setXYZ(i, base.r * factor, base.g * factor, base.b * factor); } colors.needsUpdate = true; }\n      core.rotation.y += dt * 0.15;"
-);
-
-once(solarPath, "      catalogPointsRef.current = null;\n", "      catalogPointsRef.current = null;\n");
-
 console.log('LingoFlow v3 patch applied');

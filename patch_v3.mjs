@@ -196,3 +196,44 @@ stableSource = stableSource.replace(/\n\s*catalogLabelAnchorsRef\.current = \[\]
 write(stableSolar, stableSource);
 console.log('LingoFlow catalog label stability patch applied');
 
+
+
+// Production-safe world language name renderer.
+// Uses ONE canvas overlay for the entire catalog instead of thousands of DOM/CSS2D nodes.
+const canvasSolar = 'src/components/solar/LanguageSolarSystem.tsx';
+let canvasSource = read(canvasSolar);
+
+if (!canvasSource.includes('lingoflow-world-label-canvas')) {
+  canvasSource = canvasSource.replace(
+    "  const languageLabelsRef = useRef<CSS2DObject[]>([]);",
+    "  const languageLabelsRef = useRef<CSS2DObject[]>([]);\n  const worldLabelCanvasRef = useRef<HTMLCanvasElement | null>(null);"
+  );
+
+  canvasSource = canvasSource.replace(
+    "    labelRenderer.domElement.setAttribute('aria-hidden', 'true');\n    mount.appendChild(labelRenderer.domElement);",
+    "    labelRenderer.domElement.setAttribute('aria-hidden', 'true');\n    mount.appendChild(labelRenderer.domElement);\n\n    const worldLabelCanvas = document.createElement('canvas');\n    worldLabelCanvas.className = 'absolute inset-0 pointer-events-none';\n    worldLabelCanvas.id = 'lingoflow-world-label-canvas';\n    worldLabelCanvas.setAttribute('aria-hidden', 'true');\n    mount.appendChild(worldLabelCanvas);\n    worldLabelCanvasRef.current = worldLabelCanvas;\n    const worldLabelContext = worldLabelCanvas.getContext('2d', { alpha: true });"
+  );
+
+  canvasSource = canvasSource.replace(
+    "    labelRendererRef.current = labelRenderer;",
+    "    labelRendererRef.current = labelRenderer;\n\n    let lastWorldLabelPaint = 0;\n    const paintWorldLanguageLabels = (now = performance.now()) => {\n      if (!worldLabelContext || !catalogPointsRef.current) return;\n      if (now - lastWorldLabelPaint < (mobile ? 180 : 120)) return;\n      lastWorldLabelPaint = now;\n      const rect = mount.getBoundingClientRect();\n      const dpr = Math.min(window.devicePixelRatio || 1, 2);\n      const width = Math.max(1, Math.floor(rect.width));\n      const height = Math.max(1, Math.floor(rect.height));\n      if (worldLabelCanvas.width !== Math.floor(width * dpr) || worldLabelCanvas.height !== Math.floor(height * dpr)) {\n        worldLabelCanvas.width = Math.floor(width * dpr);\n        worldLabelCanvas.height = Math.floor(height * dpr);\n        worldLabelCanvas.style.width = width + 'px';\n        worldLabelCanvas.style.height = height + 'px';\n      }\n      worldLabelContext.setTransform(dpr, 0, 0, dpr, 0, 0);\n      worldLabelContext.clearRect(0, 0, width, height);\n      const points = catalogPointsRef.current;\n      const positions = points.geometry.getAttribute('position');\n      const languages = points.userData.languages || [];\n      const projected = new THREE.Vector3();\n      const cameraForward = new THREE.Vector3();\n      camera.getWorldDirection(cameraForward);\n      worldLabelContext.textAlign = 'center';\n      worldLabelContext.textBaseline = 'middle';\n      worldLabelContext.font = mobile ? '600 7px Inter, system-ui, sans-serif' : '600 8px Inter, system-ui, sans-serif';\n      for (let i = 0; i < languages.length; i += 1) {\n        projected.fromBufferAttribute(positions, i).applyMatrix4(points.matrixWorld).project(camera);\n        if (projected.z < -1 || projected.z > 1 || projected.x < -1.08 || projected.x > 1.08 || projected.y < -1.08 || projected.y > 1.08) continue;\n        const x = (projected.x * 0.5 + 0.5) * width;\n        const y = (-projected.y * 0.5 + 0.5) * height;\n        const lang = languages[i];\n        const active = lang.code === st.sourceLanguageCode || lang.code === st.targetLanguageCode;\n        const matches = st.matching.size === 0 || st.matching.has(lang.code);\n        const alpha = active ? 1 : matches ? 0.72 : 0.18;\n        worldLabelContext.globalAlpha = alpha;\n        worldLabelContext.fillStyle = lang.color || '#cbd5e1';\n        worldLabelContext.shadowBlur = active ? 10 : 5;\n        worldLabelContext.shadowColor = lang.color || '#7dd3fc';\n        worldLabelContext.fillText(lang.name, x, y - 6);\n      }\n      worldLabelContext.globalAlpha = 1;\n      worldLabelContext.shadowBlur = 0;\n    };"
+  );
+
+  canvasSource = canvasSource.replace(
+    "      composer.render(dt);\n      labelRenderer.render(scene, camera);",
+    "      composer.render(dt);\n      labelRenderer.render(scene, camera);\n      paintWorldLanguageLabels();"
+  );
+
+  canvasSource = canvasSource.replace(
+    "      composer.dispose(); renderer.dispose(); labelRenderer.domElement.remove(); renderer.domElement.remove();",
+    "      composer.dispose(); renderer.dispose(); labelRenderer.domElement.remove(); worldLabelCanvas.remove(); worldLabelCanvasRef.current = null; renderer.domElement.remove();"
+  );
+
+  canvasSource = canvasSource.replace(
+    "className=\"relative w-full h-[460px] sm:h-[480px] cursor-grab active:cursor-grabbing touch-none\"",
+    "className=\"relative w-full h-[460px] sm:h-[480px] cursor-grab active:cursor-grabbing touch-none\""
+  );
+
+  write(canvasSolar, canvasSource);
+}
+console.log('LingoFlow production canvas world-language labels patch applied');

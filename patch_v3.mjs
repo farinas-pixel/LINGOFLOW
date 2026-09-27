@@ -146,3 +146,40 @@ once(labelPath, "Explore the world language catalog. Supported LingoFlow languag
 once('src/index.css', '/* LingoFlow Solar System labels */', '/* LingoFlow Solar System labels */');
 const cssPath = 'src/index.css'; const css = read(cssPath); if (!css.includes('.lingoflow-language-label{')) write(cssPath, css + "\n.lingoflow-language-label{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:10px;font-weight:700;letter-spacing:.01em;color:#fff;white-space:nowrap;pointer-events:none;text-shadow:0 1px 8px rgba(0,0,0,.98),0 0 12px var(--label-color);transform:translate(-50%,-100%);transition:opacity .18s ease}.lingoflow-language-label::before{content:'';display:inline-block;width:5px;height:5px;margin-right:5px;border-radius:999px;background:var(--label-color);box-shadow:0 0 9px var(--label-color);vertical-align:1px}.lingoflow-language-label.is-active{font-weight:900;text-shadow:0 1px 10px #000,0 0 18px var(--label-color)}@media(max-width:767px){.lingoflow-language-label{font-size:9px}.lingoflow-language-label::before{width:4px;height:4px;margin-right:4px}}\n");
 console.log('LingoFlow v3 patch applied');
+
+
+// Full world-language labeling: every catalog point gets a lightweight 3D HTML label.
+// The point field remains GPU-efficient while names stay visible and selectable.
+const fullLabelPath = 'src/components/solar/LanguageSolarSystem.tsx';
+const fullLabelSource = read(fullLabelPath);
+if (!fullLabelSource.includes('catalogLabelAnchorsRef')) {
+  let s = fullLabelSource;
+  s = s.replace(
+    "  const languageLabelsRef = useRef<CSS2DObject[]>([]);",
+    "  const languageLabelsRef = useRef<CSS2DObject[]>([]);\n  const catalogLabelAnchorsRef = useRef<THREE.Object3D[]>([]);\n  const catalogLanguageLabelsRef = useRef<CSS2DObject[]>([]);"
+  );
+  s = s.replace(
+    "      points.userData.languages = catalogEntries;\n      orbitGroup.add(points);\n      catalogPointsRef.current = points;",
+    "      points.userData.languages = catalogEntries;\n      orbitGroup.add(points);\n      catalogPointsRef.current = points;\n\n      // Every world-catalog point gets a real label attached to its 3D position.\n      catalogEntries.forEach((lang, index) => {\n        const anchor = new THREE.Object3D();\n        anchor.position.set(pointPositions[index * 3], pointPositions[index * 3 + 1], pointPositions[index * 3 + 2]);\n        const el = document.createElement('div');\n        el.className = 'lingoflow-language-label lingoflow-catalog-label';\n        el.textContent = lang.name;\n        el.style.setProperty('--label-color', lang.color);\n        const label = new CSS2DObject(el);\n        label.position.set(0, 5, 0);\n        label.userData.language = lang;\n        anchor.add(label);\n        orbitGroup.add(anchor);\n        catalogLabelAnchorsRef.current.push(anchor);\n        catalogLanguageLabelsRef.current.push(label);\n      });"
+  );
+  s = s.replace(
+    "      languageLabelsRef.current.forEach((label) => { const lang = label.userData.language as LanguagePlanetData; const active = lang.code === st.sourceLanguageCode || lang.code === st.targetLanguageCode; const matches = st.matching.size === 0 || st.matching.has(lang.code); const distance = camera.position.distanceTo(label.getWorldPosition(new THREE.Vector3())); const visible = active || (matches && distance < (mobile ? 720 : 860)); label.element.style.opacity = visible ? '1' : '0'; label.element.classList.toggle('is-active', active); });",
+    "      languageLabelsRef.current.forEach((label) => { const lang = label.userData.language as LanguagePlanetData; const active = lang.code === st.sourceLanguageCode || lang.code === st.targetLanguageCode; const matches = st.matching.size === 0 || st.matching.has(lang.code); label.element.style.opacity = active ? '1' : matches ? (mobile ? '0.76' : '0.84') : '0.16'; label.element.classList.toggle('is-active', active); });\n      catalogLanguageLabelsRef.current.forEach((label) => { const lang = label.userData.language as LanguagePlanetData; const active = lang.code === st.sourceLanguageCode || lang.code === st.targetLanguageCode; const matches = st.matching.size === 0 || st.matching.has(lang.code); label.element.style.opacity = active ? '1' : matches ? (mobile ? '0.62' : '0.72') : '0.10'; label.element.classList.toggle('is-active', active); });"
+  );
+  s = s.replace(
+    "      catalogPointsRef.current = null;\n      sceneRef.current = null;",
+    "      catalogPointsRef.current = null;\n      catalogLabelAnchorsRef.current = [];\n      catalogLanguageLabelsRef.current = [];\n      sceneRef.current = null;"
+  );
+  s = s.replace(
+    ".lingoflow-language-label{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:10px;",
+    ".lingoflow-language-label{font-family:Inter,ui-sans-serif,system-ui,sans-serif;font-size:10px;"
+  );
+  if (!s.includes('.lingoflow-catalog-label')) {
+    s = s.replace(
+      ".lingoflow-language-label.is-active{font-weight:900;",
+      ".lingoflow-catalog-label{font-size:8px;font-weight:650;letter-spacing:.005em}.lingoflow-catalog-label::before{width:4px;height:4px;margin-right:4px}.lingoflow-language-label.is-active{font-weight:900;"
+    );
+  }
+  write(fullLabelPath, s);
+}
+console.log('LingoFlow full world-language labels patch applied');

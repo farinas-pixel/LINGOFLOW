@@ -349,3 +349,49 @@ let scopedDrive = read(scopedDrivePath);
 scopedDrive = scopedDrive.replace("name contains 'LingoFlow_'", "'${rootId}' in parents and trashed = false and name contains 'LingoFlow_'");
 write(scopedDrivePath, scopedDrive);
 console.log('Scoped Google Drive vault query applied');
+
+
+// Real Google Identity Services OAuth path.
+const oauthDrivePath = 'src/services/cloud/GoogleDriveService.ts';
+let oauthDrive = read(oauthDrivePath);
+if (!oauthDrive.includes('connectWithGoogle(clientId')) {
+  const anchor = "  public get token(): string | null {\n    return this.accessToken;\n  }";
+  const method = "  public async connectWithGoogle(clientId: string): Promise<{ email?: string; name?: string; valid: boolean }> {\n" +
+    "    if (!clientId) throw new Error('Google Sign-In is not configured. Set VITE_GOOGLE_CLIENT_ID in the deployment environment.');\n" +
+    "    await new Promise<void>((resolve, reject) => {\n" +
+      "      if ((window as any).google?.accounts?.oauth2) return resolve();\n" +
+      "      const script = document.createElement('script');\n" +
+      "      script.src = 'https://accounts.google.com/gsi/client'; script.async = true; script.defer = true;\n" +
+      "      script.onload = () => resolve(); script.onerror = () => reject(new Error('Google Identity Services failed to load.'));\n" +
+      "      document.head.appendChild(script);\n" +
+      "    });\n" +
+    "    const token = await new Promise<string>((resolve, reject) => {\n" +
+      "      const client = (window as any).google.accounts.oauth2.initTokenClient({\n" +
+        "        client_id: clientId,\n" +
+        "        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',\n" +
+        "        callback: (response: any) => response?.access_token ? resolve(response.access_token) : reject(new Error(response?.error_description || 'Google authorization was not completed.')),\n" +
+        "      });\n" +
+      "      client.requestAccessToken({ prompt: 'consent' });\n" +
+      "    });\n" +
+    "    this.setAccessToken(token);\n" +
+    "    return this.verifyConnection();\n" +
+    "  }\n";
+  if (oauthDrive.includes(anchor)) oauthDrive = oauthDrive.replace(anchor, anchor + "\n\n" + method);
+}
+write(oauthDrivePath, oauthDrive);
+
+const oauthVaultPath = 'src/features/vault/TranslationVaultView.tsx';
+let oauthVault = read(oauthVaultPath);
+if (!oauthVault.includes('handleGoogleSignIn')) {
+  oauthVault = oauthVault.replace("  const [showTokenModal, setShowTokenModal] = useState(false);", "  const [showTokenModal, setShowTokenModal] = useState(false);\n  const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string) || '';");
+  const handler = "  const handleGoogleSignIn = async () => {\n" +
+    "    setIsLoading(true); setErrorMessage(null);\n" +
+    "    try { const result = await googleDriveService.connectWithGoogle(googleClientId); if (!result.valid) throw new Error('Google authorization completed but Drive access could not be verified.'); setIsConnected(true); setUserInfo({ email: result.email, name: result.name }); setStatusMessage('Google account connected securely.'); setFiles(await googleDriveService.listVaultFiles()); }\n" +
+    "    catch (err: any) { setErrorMessage(err?.message || 'Google Sign-In failed.'); } finally { setIsLoading(false); }\n" +
+    "  };\n\n";
+  oauthVault = oauthVault.replace("  const handleDisconnect = () => {", handler + "  const handleDisconnect = () => {");
+  oauthVault = oauthVault.replaceAll("onClick={() => setShowTokenModal(true)}", "onClick={handleGoogleSignIn}");
+  oauthVault = oauthVault.replaceAll("Connect Google Drive", "Sign in with Google");
+}
+write(oauthVaultPath, oauthVault);
+console.log('Real Google Identity Services OAuth path applied');

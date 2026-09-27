@@ -328,3 +328,16 @@ if (!orbSource.includes('LingoFlow instanced world language orbs')) {
   write(orbSolar, orbSource);
 }
 console.log('LingoFlow instanced world language orbs patch applied');
+
+
+// Final correctness pass: document chunking and honest formatting language.
+const finalMedia = 'src/features/media/MediaTranslationView.tsx';
+let finalMediaSource = read(finalMedia);
+const documentRegex = /  const handleTranslateDocument = async \(\) => \{[\s\S]*?  \};\n\n  \/\/ Download Translated Document/;
+const documentReplacement = "  const handleTranslateDocument = async () => {\n    if (!documentFile) return;\n    setIsDocTranslating(true);\n    setDocError(null);\n    try {\n      const chunkSize = 10000;\n      const translatedChunks = [];\n      for (let offset = 0; offset < documentFile.content.length; offset += chunkSize) {\n        const chunk = documentFile.content.slice(offset, offset + chunkSize);\n        const res = await fetch('/api/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: chunk, sourceLanguage: 'auto', targetLanguage: docTargetLang, mode: 'accurate', context: 'document-structure' }) });\n        const payload = await res.json().catch(() => ({}));\n        if (!res.ok) throw new Error(payload.error || ('Document translation failed (HTTP ' + res.status + ')'));\n        translatedChunks.push(payload.translatedText || '');\n      }\n      setTranslatedDocContent(translatedChunks.join(''));\n    } catch (err) { setDocError(err && err.message ? err.message : 'Failed to translate document.'); } finally { setIsDocTranslating(false); }\n  };\n\n  // Download Translated Document";
+if (documentRegex.test(finalMediaSource)) finalMediaSource = finalMediaSource.replace(documentRegex, documentReplacement);
+finalMediaSource = finalMediaSource.replace('original formatting preserved.', 'source text and supported markup structure; binary page layout is not reconstructed.');
+finalMediaSource = finalMediaSource.replace('Genuine optical character recognition (OCR) and structured file translation.', 'Real OCR for images plus text/markup document translation.');
+write(finalMedia, finalMediaSource);
+
+console.log('LingoFlow final document correctness patch applied');

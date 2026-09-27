@@ -183,3 +183,15 @@ if (!fullLabelSource.includes('catalogLabelAnchorsRef')) {
   write(fullLabelPath, s);
 }
 console.log('LingoFlow full world-language labels patch applied');
+
+
+// Stability guard: keep the world catalog GPU-light. Do not create thousands of DOM/CSS2D nodes.
+// World languages remain represented by 3D points; labels are rendered for the focused/interactive subset.
+const stableSolar = 'src/components/solar/LanguageSolarSystem.tsx';
+let stableSource = read(stableSolar);
+stableSource = stableSource.replace(/\n\s*\/\/ Every world-catalog point gets a real label attached to its 3D position\.\n\s*catalogEntries\.forEach\(\(lang, index\) => \{[\s\S]*?catalogLanguageLabelsRef\.current\.push\(label\);\n\s*\}\);/m, '');
+stableSource = stableSource.replace(/\n\s*catalogLanguageLabelsRef\.current\.forEach\(\(label\) => \{[\s\S]*?label\.element\.classList\.toggle\('is-active', active\); \}\);/m, '');
+stableSource = stableSource.replace(/\n\s*catalogLabelAnchorsRef\.current\.forEach\(\(anchor\) => anchor\.removeFromParent\(\)\);/m, '');
+stableSource = stableSource.replace(/\n\s*catalogLabelAnchorsRef\.current = \[\];\n\s*catalogLanguageLabelsRef\.current = \[\];/m, '');
+write(stableSolar, stableSource);
+console.log('LingoFlow catalog label stability patch applied');

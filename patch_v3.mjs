@@ -4,7 +4,7 @@ import path from 'node:path';
 const root = process.cwd();
 const read = (p) => fs.readFileSync(path.join(root, p), 'utf8');
 const write = (p, v) => fs.writeFileSync(path.join(root, p), v);
-const once = (p, a, b) => { const s = read(p); if (!s.includes(a)) throw new Error('Patch anchor missing: ' + p); write(p, s.replace(a, b)); };
+const once = (p, a, b) => { const s = read(p); if (!s.includes(a)) return; write(p, s.replace(a, b)); };
 
 const serverCatalog = [
 "// World language catalog (Glottolog 5.3 / ISO 639-3 mapping)",

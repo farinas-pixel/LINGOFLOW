@@ -380,21 +380,9 @@ console.log('LingoFlow product interaction layer applied');
 
 
 // Final production Solar System interaction hardening
-// Product-grade language selection: keep React state current, preserve ISO 639-3 identity,
-// and only hand supported languages into the translator's ISO-639-1 controls.
+// Keep this step intentionally narrow: the existing Solar System interaction layer
+// already owns selection state. We only harden the ISO-639-3 -> app-code handoff.
 {
-  const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
-  let solar = read(solarPath);
-  if (!solar.includes('const selectedPlanetRef = useRef')) {
-    const stateNeedle = /const \[selectedPlanet, setSelectedPlanet\] = useState<([^;]+)>;/;
-    if (!stateNeedle.test(solar)) throw new Error('Selected language state anchor missing');
-    solar = solar.replace(stateNeedle, (m, type) => m + `\n  const selectedPlanetRef = useRef<${type}>(null);\n  useEffect(() => { selectedPlanetRef.current = selectedPlanet; }, [selectedPlanet]);`);
-  }
-  solar = solar.replace(/const lang = selectedPlanet;/g, 'const lang = selectedPlanetRef.current;');
-  solar = solar.replace(/if \(source\) source\.disabled = !lang; if \(target\) target\.disabled = !lang;/g, "if (source) source.disabled = !lang || lang.textSupported === false; if (target) target.disabled = !lang || lang.textSupported === false;");
-  solar = solar.replace(/small\.textContent = lang \? \(lang\.nativeName \|\| lang\.script \|\| 'Language'\) : 'Pick an orb to configure your translation\.';/g, "small.textContent = lang ? [lang.nativeName || lang.name, lang.nativeName && lang.nativeName !== lang.name ? lang.script || '' : lang.family || 'Language catalog'].filter(Boolean).join(' · ') : 'Pick an orb to configure your translation.';");
-  write(solarPath, solar);
-
   const appPath = 'src/App.tsx';
   let app = read(appPath);
   const oldHandler = "const onLanguageConfigure = (event: Event) => { const detail = (event as CustomEvent<{ role: string; code: string }>).detail; if (!detail?.code) return; if (detail.role === 'source') setSourceLanguage(detail.code.slice(0, 2)); if (detail.role === 'target') setTargetLanguage(detail.code.slice(0, 2)); if (detail.role === 'open') setActiveView('translator'); };";

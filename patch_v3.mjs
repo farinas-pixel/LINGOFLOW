@@ -341,3 +341,11 @@ finalMediaSource = finalMediaSource.replace('Genuine optical character recogniti
 write(finalMedia, finalMediaSource);
 
 console.log('LingoFlow final document correctness patch applied');
+
+
+// Scoped Google Drive vault query.
+const scopedDrivePath = 'src/services/cloud/GoogleDriveService.ts';
+let scopedDrive = read(scopedDrivePath);
+scopedDrive = scopedDrive.replace("name contains 'LingoFlow_'", "'${rootId}' in parents and trashed = false and name contains 'LingoFlow_'");
+write(scopedDrivePath, scopedDrive);
+console.log('Scoped Google Drive vault query applied');

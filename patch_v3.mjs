@@ -54,7 +54,7 @@ once(solar, '  const planetsRef = useRef<PlanetObject[]>([]);', '  const planets
 once(solar, '  const raycaster = useRef(new THREE.Raycaster());', "  const raycaster = useRef(new THREE.Raycaster());\n  useEffect(() => { raycaster.current.params.Points = { threshold: 12 }; }, []);");
 once(solar, '  const [isMobile, setIsMobile] = useState(false);', "  const [isMobile, setIsMobile] = useState(false);\n  const [worldCatalog, setWorldCatalog] = useState(WORLD_LANGUAGE_UNIVERSE);\n  const catalogCount = worldCatalog.length;");
 const oldMatch = `  const matchingCodeSet = useMemo(() => {\n    const q = searchQuery.trim().toLowerCase();\n    const universe = activeFilter === 'ALL'\n      ? WORLD_LANGUAGE_UNIVERSE\n      : searchLanguages('', activeFilter);\n    return new Set(universe.filter((language) => !q || language.name.toLowerCase().includes(q) || language.nativeName.toLowerCase().includes(q) || language.code.toLowerCase().includes(q) || language.family.toLowerCase().includes(q)).map((l) => l.code));\n  }, [searchQuery, activeFilter]);`;
-const newMatch = `  useEffect(() => {\n    let cancelled = false;\n    fetch('/api/languages', { signal: AbortSignal.timeout(8000) }).then((r) => r.ok ? r.json() : Promise.reject(new Error('catalog unavailable'))).then((payload) => {\n      if (cancelled || !Array.isArray(payload?.languages)) return;\n      const generated = payload.languages.map((language, index) => {\n        const iso3ToAppCode = { eng:'en', spa:'es', fra:'fr', deu:'de', hin:'hi', tam:'ta', jpn:'ja', zho:'zh', ara:'ar', kor:'ko', por:'pt', ita:'it', rus:'ru', nld:'nl', pol:'pl', tur:'tr', vie:'vi', ind:'id', fil:'fil', tha:'th', ell:'el', swe:'sv', swa:'sw' };\n        const supported = SUPPORTED_LANGUAGES.find((item) => item.code === (iso3ToAppCode[language.code] || language.code));\n        const orbitIndex = (index % 10) + 1;\n        const palette = ['#6670ff','#22d3ee','#a78bfa','#34d399','#f59e0b','#fb7185','#38bdf8','#c084fc'];\n        return supported ?? { code: language.code, name: language.name, nativeName: language.nativeName || language.name, script: 'Language catalog', family: language.family || 'World language', orbitRadius: 150 + (orbitIndex - 1) * 48, orbitIndex, color: palette[index % palette.length], size: 3.8, speed: 0.00002 + (index % 7) * 0.000003, initialAngle: (index * 2.399963) % (Math.PI * 2), cloudSupported: false, offlineSupported: false, textSupported: false, speechSynthesisSupported: false, speechRecognitionSupported: false, ocrSupported: false, documentSupported: false, limitations: 'Explore-only catalog entry. Translation support is not currently enabled in LingoFlow.', popular: false, bcp47: language.code, flagGlyph: language.code.toUpperCase() };\n      });\n      setWorldCatalog(generated);\n    }).catch(() => undefined);\n    return () => { cancelled = true; };\n  }, []);\n\n  const matchingCodeSet = useMemo(() => {\n    const q = searchQuery.trim().toLowerCase();\n    const universe = activeFilter === 'ALL' ? worldCatalog : activeFilter === 'SUPPORTED' ? SUPPORTED_LANGUAGES : SUPPORTED_LANGUAGES.filter((language) => language.offlineSupported);\n    return new Set(universe.filter((language) => !q || language.name.toLowerCase().includes(q) || language.nativeName.toLowerCase().includes(q) || language.code.toLowerCase().includes(q) || language.family.toLowerCase().includes(q)).map((l) => l.code));\n  }, [searchQuery, activeFilter, worldCatalog]);`;
+const newMatch = `  useEffect(() => {\n    let cancelled = false;\n    fetch('/api/languages').then((r) => r.ok ? r.json() : Promise.reject(new Error('catalog unavailable'))).then((payload) => {\n      if (cancelled || !Array.isArray(payload?.languages)) return;\n      const generated = payload.languages.map((language, index) => {\n        const supported = SUPPORTED_LANGUAGES.find((item) => item.code === language.code.slice(0, 2));\n        const orbitIndex = (index % 10) + 1;\n        const palette = ['#6670ff','#22d3ee','#a78bfa','#34d399','#f59e0b','#fb7185','#38bdf8','#c084fc'];\n        return supported ?? { code: language.code, name: language.name, nativeName: language.nativeName || language.name, script: 'Language catalog', family: language.family || 'World language', orbitRadius: 150 + (orbitIndex - 1) * 48, orbitIndex, color: palette[index % palette.length], size: 3.8, speed: 0.00002 + (index % 7) * 0.000003, initialAngle: (index * 2.399963) % (Math.PI * 2), cloudSupported: false, offlineSupported: false, textSupported: false, speechSynthesisSupported: false, speechRecognitionSupported: false, ocrSupported: false, documentSupported: false, limitations: 'Explore-only catalog entry. Translation support is not currently enabled in LingoFlow.', popular: false, bcp47: language.code, flagGlyph: language.code.toUpperCase() };\n      });\n      setWorldCatalog(generated);\n    }).catch(() => undefined);\n    return () => { cancelled = true; };\n  }, []);\n\n  const matchingCodeSet = useMemo(() => {\n    const q = searchQuery.trim().toLowerCase();\n    const universe = activeFilter === 'ALL' ? worldCatalog : activeFilter === 'SUPPORTED' ? SUPPORTED_LANGUAGES : SUPPORTED_LANGUAGES.filter((language) => language.offlineSupported);\n    return new Set(universe.filter((language) => !q || language.name.toLowerCase().includes(q) || language.nativeName.toLowerCase().includes(q) || language.code.toLowerCase().includes(q) || language.family.toLowerCase().includes(q)).map((l) => l.code));\n  }, [searchQuery, activeFilter, worldCatalog]);`;
 const solarNow = read(solar);
 if (!solarNow.includes(oldMatch)) throw new Error('Solar matching block not found');
 write(solar, solarNow.replace(oldMatch, newMatch));
@@ -216,7 +216,7 @@ if (!canvasSource.includes('lingoflow-world-label-canvas')) {
 
   canvasSource = canvasSource.replace(
     "    labelRendererRef.current = labelRenderer;",
-    "    labelRendererRef.current = labelRenderer;\n\n    let lastWorldLabelPaint = 0;\n    const paintWorldLanguageLabels = (now = performance.now()) => {\n      if (!worldLabelContext || !catalogPointsRef.current) return;\n      if (now - lastWorldLabelPaint < (mobile ? 320 : 180)) return;\n      lastWorldLabelPaint = now;\n      const rect = mount.getBoundingClientRect();\n      const dpr = Math.min(window.devicePixelRatio || 1, 2);\n      const width = Math.max(1, Math.floor(rect.width));\n      const height = Math.max(1, Math.floor(rect.height));\n      if (worldLabelCanvas.width !== Math.floor(width * dpr) || worldLabelCanvas.height !== Math.floor(height * dpr)) {\n        worldLabelCanvas.width = Math.floor(width * dpr);\n        worldLabelCanvas.height = Math.floor(height * dpr);\n        worldLabelCanvas.style.width = width + 'px';\n        worldLabelCanvas.style.height = height + 'px';\n      }\n      worldLabelContext.setTransform(dpr, 0, 0, dpr, 0, 0);\n      worldLabelContext.clearRect(0, 0, width, height);\n      const points = catalogPointsRef.current;\n      const positions = points.geometry.getAttribute('position');\n      const languages = points.userData.languages || [];\n      const projected = new THREE.Vector3();\n      const cameraForward = new THREE.Vector3();\n      camera.getWorldDirection(cameraForward);\n      worldLabelContext.textAlign = 'center';\n      worldLabelContext.textBaseline = 'middle';\n      worldLabelContext.font = mobile ? '600 7px Inter, system-ui, sans-serif' : '600 8px Inter, system-ui, sans-serif';\n      for (let i = 0; i < languages.length; i += 1) {\n        projected.fromBufferAttribute(positions, i).applyMatrix4(points.matrixWorld).project(camera);\n        if (projected.z < -1 || projected.z > 1 || projected.x < -1.08 || projected.x > 1.08 || projected.y < -1.08 || projected.y > 1.08) continue;\n        const x = (projected.x * 0.5 + 0.5) * width;\n        const y = (-projected.y * 0.5 + 0.5) * height;\n        const lang = languages[i];\n        const active = lang.code === st.sourceLanguageCode || lang.code === st.targetLanguageCode;\n        const matches = st.matching.size === 0 || st.matching.has(lang.code);\n        const alpha = active ? 1 : matches ? 0.72 : 0.18;\n        worldLabelContext.globalAlpha = alpha;\n        worldLabelContext.fillStyle = lang.color || '#cbd5e1';\n        worldLabelContext.shadowBlur = active ? 10 : 5;\n        worldLabelContext.shadowColor = lang.color || '#7dd3fc';\n        worldLabelContext.fillText(lang.name, x, y - 6);\n      }\n      worldLabelContext.globalAlpha = 1;\n      worldLabelContext.shadowBlur = 0;\n    };"
+    "    labelRendererRef.current = labelRenderer;\n\n    let lastWorldLabelPaint = 0;\n    const paintWorldLanguageLabels = (now = performance.now()) => {\n      if (!worldLabelContext || !catalogPointsRef.current) return;\n      if (now - lastWorldLabelPaint < (mobile ? 180 : 120)) return;\n      lastWorldLabelPaint = now;\n      const rect = mount.getBoundingClientRect();\n      const dpr = Math.min(window.devicePixelRatio || 1, 2);\n      const width = Math.max(1, Math.floor(rect.width));\n      const height = Math.max(1, Math.floor(rect.height));\n      if (worldLabelCanvas.width !== Math.floor(width * dpr) || worldLabelCanvas.height !== Math.floor(height * dpr)) {\n        worldLabelCanvas.width = Math.floor(width * dpr);\n        worldLabelCanvas.height = Math.floor(height * dpr);\n        worldLabelCanvas.style.width = width + 'px';\n        worldLabelCanvas.style.height = height + 'px';\n      }\n      worldLabelContext.setTransform(dpr, 0, 0, dpr, 0, 0);\n      worldLabelContext.clearRect(0, 0, width, height);\n      const points = catalogPointsRef.current;\n      const positions = points.geometry.getAttribute('position');\n      const languages = points.userData.languages || [];\n      const projected = new THREE.Vector3();\n      const cameraForward = new THREE.Vector3();\n      camera.getWorldDirection(cameraForward);\n      worldLabelContext.textAlign = 'center';\n      worldLabelContext.textBaseline = 'middle';\n      worldLabelContext.font = mobile ? '600 7px Inter, system-ui, sans-serif' : '600 8px Inter, system-ui, sans-serif';\n      for (let i = 0; i < languages.length; i += 1) {\n        projected.fromBufferAttribute(positions, i).applyMatrix4(points.matrixWorld).project(camera);\n        if (projected.z < -1 || projected.z > 1 || projected.x < -1.08 || projected.x > 1.08 || projected.y < -1.08 || projected.y > 1.08) continue;\n        const x = (projected.x * 0.5 + 0.5) * width;\n        const y = (-projected.y * 0.5 + 0.5) * height;\n        const lang = languages[i];\n        const active = lang.code === st.sourceLanguageCode || lang.code === st.targetLanguageCode;\n        const matches = st.matching.size === 0 || st.matching.has(lang.code);\n        const alpha = active ? 1 : matches ? 0.72 : 0.18;\n        worldLabelContext.globalAlpha = alpha;\n        worldLabelContext.fillStyle = lang.color || '#cbd5e1';\n        worldLabelContext.shadowBlur = active ? 10 : 5;\n        worldLabelContext.shadowColor = lang.color || '#7dd3fc';\n        worldLabelContext.fillText(lang.name, x, y - 6);\n      }\n      worldLabelContext.globalAlpha = 1;\n      worldLabelContext.shadowBlur = 0;\n    };"
   );
 
   canvasSource = canvasSource.replace(
@@ -328,70 +328,3 @@ if (!orbSource.includes('LingoFlow instanced world language orbs')) {
   write(orbSolar, orbSource);
 }
 console.log('LingoFlow instanced world language orbs patch applied');
-
-
-// Final correctness pass: document chunking and honest formatting language.
-const finalMedia = 'src/features/media/MediaTranslationView.tsx';
-let finalMediaSource = read(finalMedia);
-const documentRegex = /  const handleTranslateDocument = async \(\) => \{[\s\S]*?  \};\n\n  \/\/ Download Translated Document/;
-const documentReplacement = "  const handleTranslateDocument = async () => {\n    if (!documentFile) return;\n    setIsDocTranslating(true);\n    setDocError(null);\n    try {\n      const chunkSize = 10000;\n      const translatedChunks = [];\n      for (let offset = 0; offset < documentFile.content.length; offset += chunkSize) {\n        const chunk = documentFile.content.slice(offset, offset + chunkSize);\n        const res = await fetch('/api/translate', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: chunk, sourceLanguage: 'auto', targetLanguage: docTargetLang, mode: 'accurate', context: 'document-structure' }) });\n        const payload = await res.json().catch(() => ({}));\n        if (!res.ok) throw new Error(payload.error || ('Document translation failed (HTTP ' + res.status + ')'));\n        translatedChunks.push(payload.translatedText || '');\n      }\n      setTranslatedDocContent(translatedChunks.join(''));\n    } catch (err) { setDocError(err && err.message ? err.message : 'Failed to translate document.'); } finally { setIsDocTranslating(false); }\n  };\n\n  // Download Translated Document";
-if (documentRegex.test(finalMediaSource)) finalMediaSource = finalMediaSource.replace(documentRegex, documentReplacement);
-finalMediaSource = finalMediaSource.replace('original formatting preserved.', 'source text and supported markup structure; binary page layout is not reconstructed.');
-finalMediaSource = finalMediaSource.replace('Genuine optical character recognition (OCR) and structured file translation.', 'Real OCR for images plus text/markup document translation.');
-write(finalMedia, finalMediaSource);
-
-console.log('LingoFlow final document correctness patch applied');
-
-
-// Scoped Google Drive vault query.
-const scopedDrivePath = 'src/services/cloud/GoogleDriveService.ts';
-let scopedDrive = read(scopedDrivePath);
-scopedDrive = scopedDrive.replace("name contains 'LingoFlow_'", "'${rootId}' in parents and trashed = false and name contains 'LingoFlow_'");
-write(scopedDrivePath, scopedDrive);
-console.log('Scoped Google Drive vault query applied');
-
-
-// Real Google Identity Services OAuth path.
-const oauthDrivePath = 'src/services/cloud/GoogleDriveService.ts';
-let oauthDrive = read(oauthDrivePath);
-if (!oauthDrive.includes('connectWithGoogle(clientId')) {
-  const anchor = "  public get token(): string | null {\n    return this.accessToken;\n  }";
-  const method = "  public async connectWithGoogle(clientId: string): Promise<{ email?: string; name?: string; valid: boolean }> {\n" +
-    "    if (!clientId) throw new Error('Google Sign-In is not configured. Set VITE_GOOGLE_CLIENT_ID in the deployment environment.');\n" +
-    "    await new Promise<void>((resolve, reject) => {\n" +
-      "      if ((window as any).google?.accounts?.oauth2) return resolve();\n" +
-      "      const script = document.createElement('script');\n" +
-      "      script.src = 'https://accounts.google.com/gsi/client'; script.async = true; script.defer = true;\n" +
-      "      script.onload = () => resolve(); script.onerror = () => reject(new Error('Google Identity Services failed to load.'));\n" +
-      "      document.head.appendChild(script);\n" +
-      "    });\n" +
-    "    const token = await new Promise<string>((resolve, reject) => {\n" +
-      "      const client = (window as any).google.accounts.oauth2.initTokenClient({\n" +
-        "        client_id: clientId,\n" +
-        "        scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',\n" +
-        "        callback: (response: any) => response?.access_token ? resolve(response.access_token) : reject(new Error(response?.error_description || 'Google authorization was not completed.')),\n" +
-        "      });\n" +
-      "      client.requestAccessToken({ prompt: 'consent' });\n" +
-      "    });\n" +
-    "    this.setAccessToken(token);\n" +
-    "    return this.verifyConnection();\n" +
-    "  }\n";
-  if (oauthDrive.includes(anchor)) oauthDrive = oauthDrive.replace(anchor, anchor + "\n\n" + method);
-}
-write(oauthDrivePath, oauthDrive);
-
-const oauthVaultPath = 'src/features/vault/TranslationVaultView.tsx';
-let oauthVault = read(oauthVaultPath);
-if (!oauthVault.includes('handleGoogleSignIn')) {
-  oauthVault = oauthVault.replace("  const [showTokenModal, setShowTokenModal] = useState(false);", "  const [showTokenModal, setShowTokenModal] = useState(false);\n  const googleClientId = (import.meta.env.VITE_GOOGLE_CLIENT_ID as string) || '';");
-  const handler = "  const handleGoogleSignIn = async () => {\n" +
-    "    setIsLoading(true); setErrorMessage(null);\n" +
-    "    try { const result = await googleDriveService.connectWithGoogle(googleClientId); if (!result.valid) throw new Error('Google authorization completed but Drive access could not be verified.'); setIsConnected(true); setUserInfo({ email: result.email, name: result.name }); setStatusMessage('Google account connected securely.'); setFiles(await googleDriveService.listVaultFiles()); }\n" +
-    "    catch (err: any) { setErrorMessage(err?.message || 'Google Sign-In failed.'); } finally { setIsLoading(false); }\n" +
-    "  };\n\n";
-  oauthVault = oauthVault.replace("  const handleDisconnect = () => {", handler + "  const handleDisconnect = () => {");
-  oauthVault = oauthVault.replaceAll("onClick={() => setShowTokenModal(true)}", "onClick={handleGoogleSignIn}");
-  oauthVault = oauthVault.replaceAll("Connect Google Drive", "Sign in with Google");
-}
-write(oauthVaultPath, oauthVault);
-console.log('Real Google Identity Services OAuth path applied');

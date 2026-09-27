@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --lf-primary: #5B5FEF;
+    --lf-secondary: #22D3EE;
+    --lf-bg: #F8FAFC;
+    --lf-card: #FFFFFF;
+    --lf-card-muted: #F1F5F9;
+    --lf-text: #111827;
+    --lf-text-secondary: #64748B;
+    --lf-border: #E2E8F0;
+    --lf-success: #10B981;
+    --lf-accent-glow: rgba(91, 95, 239, 0.15);
+  }
+
+  .dark {
+    --lf-primary: #7C83FF;
+    --lf-secondary: #22D3EE;
+    --lf-bg: #080B14;
+    --lf-card: #111827;
+    --lf-card-muted: #1E293B;
+    --lf-text: #F8FAFC;
+    --lf-text-secondary: #94A3B8;
+    --lf-border: #1E293B;
+    --lf-success: #10B981;
+    --lf-accent-glow: rgba(124, 131, 255, 0.2);
+  }
+
+  * {
+    border-color: var(--lf-border);
+  }
+
+  html {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-feature-settings: "tnum";
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

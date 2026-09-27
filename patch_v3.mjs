@@ -237,3 +237,94 @@ if (!canvasSource.includes('lingoflow-world-label-canvas')) {
   write(canvasSolar, canvasSource);
 }
 console.log('LingoFlow production canvas world-language labels patch applied');
+
+
+// Final cinematic language-orb upgrade.
+// World catalog languages are rendered as GPU-efficient instanced 3D orbs,
+// while the single canvas label layer keeps every name readable without DOM overload.
+const orbSolar = 'src/components/solar/LanguageSolarSystem.tsx';
+let orbSource = read(orbSolar);
+
+if (!orbSource.includes('LingoFlow instanced world language orbs')) {
+  orbSource = orbSource.replace(
+    "  const catalogPointsRef = useRef(null);",
+    "  const catalogPointsRef = useRef(null);\n  const worldOrbPositionsRef = useRef<number[]>([]);"
+  );
+
+  const pointsBlock = /    if \(catalogEntries\.length\) \{\n      const pointGeometry = new THREE\.BufferGeometry\(\);\n      pointGeometry\.setAttribute\('position', new THREE\.Float32BufferAttribute\(pointPositions, 3\)\);\n      pointGeometry\.setAttribute\('color', new THREE\.Float32BufferAttribute\(pointColors, 3\)\);\n      const points = new THREE\.Points\(pointGeometry, new THREE\.PointsMaterial\(\{ size: mobile \? 3\.4 : 4\.5, vertexColors: true, transparent: true, opacity: 0\.72, sizeAttenuation: true \}\)\);\n      points\.userData\.languages = catalogEntries;\n      orbitGroup\.add\(points\);\n      catalogPointsRef\.current = points;\n    \}/m;
+
+  const orbBlock = `    if (catalogEntries.length) {
+      const orbGeometry = new THREE.SphereGeometry(2.35, mobile ? 6 : 8, mobile ? 6 : 8);
+      const orbMaterial = new THREE.MeshStandardMaterial({
+        color: '#ffffff',
+        emissive: '#ffffff',
+        emissiveIntensity: 0.18,
+        roughness: 0.5,
+        metalness: 0.08,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.86,
+      });
+      const orbs = new THREE.InstancedMesh(orbGeometry, orbMaterial, catalogEntries.length);
+      const dummy = new THREE.Object3D();
+      const color = new THREE.Color();
+      for (let i = 0; i < catalogEntries.length; i += 1) {
+        dummy.position.set(pointPositions[i * 3], pointPositions[i * 3 + 1], pointPositions[i * 3 + 2]);
+        const scale = catalogEntries[i].size ? Math.max(0.72, Math.min(1.35, catalogEntries[i].size / 3.8)) : 1;
+        dummy.scale.setScalar(scale);
+        dummy.updateMatrix();
+        orbs.setMatrixAt(i, dummy.matrix);
+        color.set(catalogEntries[i].color || '#7dd3fc');
+        orbs.setColorAt(i, color);
+      }
+      orbs.instanceMatrix.needsUpdate = true;
+      if (orbs.instanceColor) orbs.instanceColor.needsUpdate = true;
+      orbs.userData.languages = catalogEntries;
+      orbs.userData.positions = pointPositions;
+      orbitGroup.add(orbs);
+      catalogPointsRef.current = orbs;
+      worldOrbPositionsRef.current = pointPositions;
+    }`;
+  if (!pointsBlock.test(orbSource)) throw new Error('World catalog point block not found for orb upgrade');
+  orbSource = orbSource.replace(pointsBlock, orbBlock);
+
+  orbSource = orbSource.replace(
+    "const catalogLanguage = pointHit && typeof pointHit.index === 'number' ? catalogPointsRef.current?.userData.languages?.[pointHit.index] : undefined;",
+    "const hitIndex = pointHit?.instanceId ?? pointHit?.index;\n      const catalogLanguage = pointHit && typeof hitIndex === 'number' ? catalogPointsRef.current?.userData.languages?.[hitIndex] : undefined;"
+  );
+  orbSource = orbSource.replace(
+    "if (pointHit && typeof pointHit.index === 'number') { const language = catalogPointsRef.current.userData.languages?.[pointHit.index];",
+    "const hitIndex = pointHit?.instanceId ?? pointHit?.index; if (pointHit && typeof hitIndex === 'number') { const language = catalogPointsRef.current.userData.languages?.[hitIndex];"
+  );
+  orbSource = orbSource.replace(
+    "const positions = points.geometry.getAttribute('position');\n      const languages = points.userData.languages || [];",
+    "const worldPositions = points.userData.positions || [];\n      const languages = points.userData.languages || [];"
+  );
+  orbSource = orbSource.replace(
+    "projected.fromBufferAttribute(positions, i).applyMatrix4(points.matrixWorld).project(camera);",
+    "projected.set(worldPositions[i * 3] || 0, worldPositions[i * 3 + 1] || 0, worldPositions[i * 3 + 2] || 0).applyMatrix4(points.matrixWorld).project(camera);"
+  );
+  orbSource = orbSource.replace(
+    "worldLabelContext.font = mobile ? '600 7px Inter, system-ui, sans-serif' : '600 8px Inter, system-ui, sans-serif';",
+    "worldLabelContext.font = mobile ? '700 8px Inter, system-ui, sans-serif' : '700 9px Inter, system-ui, sans-serif';"
+  );
+  orbSource = orbSource.replace(
+    "worldLabelContext.fillText(lang.name, x, y - 6);",
+    "worldLabelContext.fillText(lang.name, x, y - (mobile ? 8 : 10));"
+  );
+  orbSource = orbSource.replace(
+    "const alpha = active ? 1 : matches ? 0.72 : 0.18;",
+    "const alpha = active ? 1 : matches ? 0.82 : 0.22;"
+  );
+  orbSource = orbSource.replace(
+    "worldLabelContext.shadowBlur = active ? 10 : 5;",
+    "worldLabelContext.shadowBlur = active ? 14 : 7;"
+  );
+  orbSource = orbSource.replace(
+    "      catalogPointsRef.current = null;",
+    "      catalogPointsRef.current = null;\n      worldOrbPositionsRef.current = [];"
+  );
+  orbSource += "\n/* LingoFlow instanced world language orbs */\n";
+  write(orbSolar, orbSource);
+}
+console.log('LingoFlow instanced world language orbs patch applied');

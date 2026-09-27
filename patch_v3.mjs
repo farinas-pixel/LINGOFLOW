@@ -377,3 +377,30 @@ if (!productApp.includes('lingoflow:language-configure')) {
   write(productAppPath, productApp);
 }
 console.log('LingoFlow product interaction layer applied');
+
+
+// Final production Solar System interaction hardening
+// Product-grade language selection: keep React state current, preserve ISO 639-3 identity,
+// and only hand supported languages into the translator's ISO-639-1 controls.
+{
+  const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
+  let solar = read(solarPath);
+  if (!solar.includes('const selectedPlanetRef = useRef')) {
+    const stateNeedle = /const \[selectedPlanet, setSelectedPlanet\] = useState<([^;]+)>;/;
+    if (!stateNeedle.test(solar)) throw new Error('Selected language state anchor missing');
+    solar = solar.replace(stateNeedle, (m, type) => m + `\n  const selectedPlanetRef = useRef<${type}>(null);\n  useEffect(() => { selectedPlanetRef.current = selectedPlanet; }, [selectedPlanet]);`);
+  }
+  solar = solar.replace(/const lang = selectedPlanet;/g, 'const lang = selectedPlanetRef.current;');
+  solar = solar.replace(/if \(source\) source\.disabled = !lang; if \(target\) target\.disabled = !lang;/g, "if (source) source.disabled = !lang || lang.textSupported === false; if (target) target.disabled = !lang || lang.textSupported === false;");
+  solar = solar.replace(/small\.textContent = lang \? \(lang\.nativeName \|\| lang\.script \|\| 'Language'\) : 'Pick an orb to configure your translation\.';/g, "small.textContent = lang ? [lang.nativeName || lang.name, lang.nativeName && lang.nativeName !== lang.name ? lang.script || '' : lang.family || 'Language catalog'].filter(Boolean).join(' · ') : 'Pick an orb to configure your translation.';");
+  write(solarPath, solar);
+
+  const appPath = 'src/App.tsx';
+  let app = read(appPath);
+  const oldHandler = "const onLanguageConfigure = (event: Event) => { const detail = (event as CustomEvent<{ role: string; code: string }>).detail; if (!detail?.code) return; if (detail.role === 'source') setSourceLanguage(detail.code.slice(0, 2)); if (detail.role === 'target') setTargetLanguage(detail.code.slice(0, 2)); if (detail.role === 'open') setActiveView('translator'); };";
+  const newHandler = "const onLanguageConfigure = (event: Event) => { const detail = (event as CustomEvent<{ role: string; code: string }>).detail; if (!detail?.code) return; const iso6393ToApp: Record<string,string> = { eng:'en', spa:'es', fra:'fr', deu:'de', ita:'it', por:'pt', nld:'nl', rus:'ru', ara:'ar', hin:'hi', ben:'bn', tam:'ta', tel:'te', kan:'kn', mal:'ml', mar:'mr', guj:'gu', pan:'pa', urd:'ur', jpn:'ja', kor:'ko', zho:'zh', cmn:'zh', vie:'vi', ind:'id', tha:'th', tur:'tr', pol:'pl', ukr:'uk', swe:'sv', dan:'da', nor:'no', fin:'fi', heb:'he', ell:'el' }; const appCode = iso6393ToApp[detail.code.toLowerCase()]; if (detail.role === 'source' && appCode) setSourceLanguage(appCode); if (detail.role === 'target' && appCode) setTargetLanguage(appCode); if (detail.role === 'open') setActiveView('translator'); };";
+  if (app.includes(oldHandler)) app = app.replace(oldHandler, newHandler);
+  else if (!app.includes('iso6393ToApp')) throw new Error('Language configure handler anchor missing');
+  write(appPath, app);
+}
+console.log('LingoFlow production Solar System interaction hardening applied');

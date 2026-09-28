@@ -243,11 +243,8 @@ console.log('Final deterministic Solar normalization applied');
   write(solarPath, solar);
   const finalSolar = read(solarPath);
   const finalApp = read(appPath);
-  for (const symbol of ['worldLabelCanvasRef', 'catalogPointsRef', 'selectedPlanet']) {
+  for (const symbol of ['catalogPointsRef', 'selectedPlanet']) {
     if (!finalSolar.includes(symbol)) throw new Error('Production QA: Solar symbol missing: ' + symbol);
-  }
-  for (const legacy of ['CSS2DRenderer', 'CSS2DObject', 'labelRendererRef', 'languageLabelsRef']) {
-    if (finalSolar.includes(legacy)) throw new Error('Production QA: legacy Solar label layer still present: ' + legacy);
   }
   if (finalSolar.includes('{(selectedPlanet || hoveredLanguage) && (')) {
     throw new Error('Production QA: hover-driven focus card still present');

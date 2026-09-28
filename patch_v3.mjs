@@ -67,39 +67,18 @@ if (!solarV6.includes('const coreGroup')) throw new Error('V6.1 QA: coreGroup mi
 if (!solarV6.includes('coreGroup.rotation.y')) throw new Error('V6.1 QA: core animation missing');
 if (!solarV6.includes('makeLanguageLabelTexture')) throw new Error('V6.1 QA: language labels missing');
 
-// V7 cinematic Solar System refinement: visual depth, hero planets, nebula layers and camera framing.
+// V7 cinematic Solar System refinement: camera framing, depth and calmer motion.
 const refine = (a,b) => { if (solarV6.includes(a)) solarV6 = solarV6.replace(a,b); };
 refine("const CAMERA_DEFAULT = { x: 0.86, y: 0.46, distance: 700 };","const CAMERA_DEFAULT = { x: 0.62, y: 0.42, distance: 610 };");
 refine("const CAMERA_DEFAULT = { yaw: 0.86, pitch: 0.46, distance: 700 };","const CAMERA_DEFAULT = { yaw: 0.62, pitch: 0.42, distance: 610 };");
 refine("new THREE.PerspectiveCamera(45, 1, 0.1, 3600)","new THREE.PerspectiveCamera(38, 1, 0.1, 3600)");
 refine("const starCount = mobile ? 900 : 1400;","const starCount = mobile ? 1050 : 2200;");
 refine("const starCount = mobile ? 900 : 1700;","const starCount = mobile ? 1050 : 2200;");
-refine("new THREE.PointsMaterial({ color: 0xaec9ff, size: mobile ? 1.25 : 1.7, transparent: true, opacity: 0.78 })","new THREE.PointsMaterial({ color: 0xb8d6ff, size: mobile ? 1.15 : 1.55, transparent: true, opacity: 0.74, depthWrite: false })");
-if (!solarV6.includes("const nebulaSpecs")) {
-  refine("scene.add(stars);", "scene.add(stars);\\n    const nebulaTexture = makeGlowTexture();\\n    if (nebulaTexture) {\\n      const nebulaSpecs = [\\n        { color: 0x2148ff, opacity: 0.16, scale: 1500, position: [-360, 160, -480] },\\n        { color: 0xa855f7, opacity: 0.12, scale: 1250, position: [420, -80, -360] },\\n        { color: 0x22d3ee, opacity: 0.09, scale: 980, position: [-20, 320, 220] },\\n      ];\\n      nebulaSpecs.forEach((spec) => {\\n        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: nebulaTexture, color: spec.color, transparent: true, opacity: spec.opacity, blending: THREE.AdditiveBlending, depthWrite: false }));\\n        sprite.scale.set(spec.scale, spec.scale, 1);\\n        sprite.position.set(spec.position[0], spec.position[1], spec.position[2]);\\n        scene.add(sprite);\\n      });\\n    }");
-}
-refine("scene.add(coreGroup);","scene.add(coreGroup);
-    const coreLight = new THREE.PointLight(0x6374ff, 900, 620, 2);
-    coreLight.position.set(0, 20, 20);
-    scene.add(coreLight);");
-refine("new THREE.SphereGeometry(54, 48, 48)","new THREE.SphereGeometry(60, 56, 56)");
-refine("new THREE.SphereGeometry(48, 48, 48)","new THREE.SphereGeometry(60, 56, 56)");
-refine("sprite.scale.set(330, 330, 1)","sprite.scale.set(390, 390, 1)");
+refine("opacity: 0.78 }));","opacity: 0.74, depthWrite: false }));");
 refine("orbitGroup.rotation.y += dt * 0.006;","orbitGroup.rotation.y += dt * 0.0045;");
 refine("planet.userData.angle += lang.speed * dt * 820;","planet.userData.angle += lang.speed * dt * 690;");
-if (!solarV6.includes("const prominent = activeLanguage")) {
-  const old = "const labelTexture = makeLanguageLabelTexture(lang);";
-  if (solarV6.includes(old)) {
-    solarV6 = solarV6.replace(old, "const activeLanguage = lang.code === sourceLanguageCode || lang.code === targetLanguageCode;
-      const supported = SUPPORTED_LANGUAGES.some((item) => item.code === lang.code);
-      const prominent = activeLanguage || supported || lang.popular || index % 7 === 0;
-      const labelTexture = prominent ? makeLanguageLabelTexture(lang) : null;");
-  }
-}
-refine("const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture, transparent: true, depthWrite: false }));","const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture, transparent: true, depthWrite: false, opacity: activeLanguage ? 1 : supported || lang.popular ? 0.9 : 0.32 }));");
-refine("label.position.set(0, lang.size + 28, 0);","label.position.set(0, lang.size + 30, 0);");
-refine("label.scale.set(118, 34, 1);","label.scale.set(activeLanguage ? 138 : 112, activeLanguage ? 43 : 35, 1);");
-console.log('LingoFlow V7 cinematic Solar refinement applied');
+refine("label.scale.set(118, 34, 1);","label.scale.set(124, 38, 1);");
+console.log('LingoFlow V7 cinematic framing refinement applied');
 
 write('src/components/solar/LanguageSolarSystem.tsx', solarV6);
 console.log('LingoFlow V6 Language Universe visual patch applied');

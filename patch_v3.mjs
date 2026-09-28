@@ -682,6 +682,6 @@ console.log('LingoFlow Universe orbital hero applied');
   if (!solar.includes('LINGOFLOW UNIVERSE ORBIT CORE')) throw new Error('Universe QA: core missing');
   if (!solar.includes('universeOrbitRadii')) throw new Error('Universe QA: orbit rings missing');
   if (!solar.includes('LingoFlowUniverseCore')) throw new Error('Universe QA: core group missing');
-  if (!solar.includes('universeCore.rotation.y')) throw new Error('Universe QA: core animation missing');
+  if (!solar.includes("core.rotation.y = elapsed * 0.00012")) throw new Error('Universe QA: core animation missing');
   console.log('Universe QA passed: core planet, orbital rings, depth particles and motion verified.');
 }

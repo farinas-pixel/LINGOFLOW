@@ -208,20 +208,7 @@ console.log('Solar canvas ref guard applied');
   const isoMap = "const LINGOFLOW_ISO3_TO_APP = {eng:'en',spa:'es',fra:'fr',deu:'de',ita:'it',por:'pt',nld:'nl',rus:'ru',ara:'ar',hin:'hi',ben:'bn',tam:'ta',tel:'te',kan:'kn',mal:'ml',mar:'mr',guj:'gu',pan:'pa',urd:'ur',jpn:'ja',kor:'ko',zho:'zh',cmn:'zh',vie:'vi',ind:'id',tha:'th',tur:'tr',pol:'pl',ukr:'uk',swe:'sv',dan:'da',nor:'no',fin:'fi',heb:'he',ell:'el'};";
   solar = solar.replace(/const supported = SUPPORTED_LANGUAGES\.find\(\(item\) => item\.code === language\.code\.slice\(0, 2\)\);/, isoMap + "\n        const supported = SUPPORTED_LANGUAGES.find((item) => item.code === (LINGOFLOW_ISO3_TO_APP[language.code] || language.code));");
 
-  const panel = [
-    "      {(selectedPlanet || hoveredLanguage) && (",
-    "        <div className=\"absolute left-4 bottom-4 z-20 w-[min(360px,calc(100%-2rem))] rounded-2xl border border-white/10 bg-slate-950/85 p-4 shadow-2xl backdrop-blur-xl\">",
-    "          <div className=\"text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-300\">Language focus</div>",
-    "          <div className=\"mt-1 text-xl font-semibold text-white\">{(selectedPlanet || hoveredLanguage).name}</div>",
-    "          {(selectedPlanet || hoveredLanguage).nativeName && <div className=\"mt-0.5 text-base text-slate-300\">{(selectedPlanet || hoveredLanguage).nativeName}</div>}",
-    "          <div className=\"mt-2 text-xs text-slate-400\">{(selectedPlanet || hoveredLanguage).family || 'Language family unavailable'} · {(selectedPlanet || hoveredLanguage).script || 'Script data unavailable'}</div>",
-    "          <button type=\"button\" className=\"mt-3 w-full rounded-xl bg-white px-3 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-50\" onClick={() => window.dispatchEvent(new CustomEvent('lingoflow:translate-language', { detail: { code: (selectedPlanet || hoveredLanguage).code } }))}>Translate with {(selectedPlanet || hoveredLanguage).name}</button>",
-    "        </div>",
-    "      )}"
-  ].join('\n');
-  const returnAnchor = solar.lastIndexOf('\n    </div>\n  );\n}');
-  if (returnAnchor >= 0 && !solar.includes('Language focus')) solar = solar.slice(0, returnAnchor) + '\n' + panel + solar.slice(returnAnchor);
-  write(solarPath, solar);
+  // Language focus card intentionally omitted from generated JSX until it is implemented as a stable component.\n  write(solarPath, solar);
 
   const serverPath = 'server.ts';
   let server = read(serverPath);

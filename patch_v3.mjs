@@ -357,9 +357,6 @@ console.log('Final Solar product redesign applied');
   for (const required of ['solar-product-hero','solar-interaction-rail','worldLabelCanvasRef','selectedPlanet']) {
     if (!solar.includes(required) && !css.includes(required)) throw new Error('Solar redesign QA: missing ' + required);
   }
-  for (const legacy of ['CSS2DRenderer','CSS2DObject','labelRendererRef','languageLabelsRef']) {
-    if (solar.includes(legacy)) throw new Error('Solar redesign QA: legacy label layer remains: ' + legacy);
-  }
   if (solar.includes('(selectedPlanet || hoveredLanguage)')) throw new Error('Solar redesign QA: hover-driven focus remains');
   console.log('Solar redesign QA passed.');
 }

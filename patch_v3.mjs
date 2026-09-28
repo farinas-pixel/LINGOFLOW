@@ -530,5 +530,5 @@ console.log('LingoFlow Universe orbital hero applied');
   }
   if (!finalSolar.includes('const worldLabelCanvas = document.createElement')) throw new Error('Solar runtime normalization failed: canvas label layer missing');
   console.log('Solar runtime normalization passed: canvas labels are local, legacy CSS2D/ref layers removed.');
-  console.log('SOLAR_DEBUG_382_396\\n' + read(solarPath).split('\\n').slice(381,396).map((line, index) => (index + 382) + ': ' + line).join('\\n'));
+  console.log('SOLAR_DEBUG_382_396\\n' + read(solarPath).split(String.fromCharCode(10)).slice(381,396).map((line, index) => (index + 382) + ': ' + line).join(String.fromCharCode(10)));
 }

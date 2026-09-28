@@ -69,12 +69,5 @@ if (!solarV6.includes('makeLanguageLabelTexture')) throw new Error('V6.1 QA: lan
 write('src/components/solar/LanguageSolarSystem.tsx', solarV6);
 console.log('LingoFlow V6 Language Universe visual patch applied');
 
-const canonicalSolar = zlib.gunzipSync(Buffer.from(read('solar_payload.b64'), 'base64')).toString('utf8');
-write('src/components/solar/LanguageSolarSystem.tsx', canonicalSolar);
-
-const solarFinal = read('src/components/solar/LanguageSolarSystem.tsx');
-if (!solarFinal.includes('ORBIT_RADII') || !solarFinal.includes('EffectComposer') || !solarFinal.includes('UnrealBloomPass') || !solarFinal.includes('makeLabelTexture')) throw new Error('Production QA failed: canonical Language Universe source missing');
-if (!solarFinal.includes('pointerdown') || !solarFinal.includes('wheel') || !solarFinal.includes('requestAnimationFrame')) throw new Error('Production QA failed: 3D interaction architecture missing');
-
-console.log('LingoFlow canonical Language Universe source installed.');
+console.log('LingoFlow V6.1 Language Universe patch applied');
 console.log('LingoFlow V5 safe production patch applied');process.exit(0);

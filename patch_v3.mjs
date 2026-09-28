@@ -534,46 +534,41 @@ console.log('LingoFlow Universe orbital hero applied');
 }
 
 
-// React runtime hardening: prevent duplicate React instances and enforce one renderer resolution.
+// React runtime hardening: one exact React runtime for the entire generated app.
 {
+  const packagePath = 'package.json';
+  if (fs.existsSync(path.join(root, packagePath))) {
+    const pkg = JSON.parse(read(packagePath));
+    pkg.dependencies = pkg.dependencies || {};
+    pkg.devDependencies = pkg.devDependencies || {};
+    pkg.dependencies.react = '19.3.0';
+    pkg.dependencies['react-dom'] = '19.3.0';
+    pkg.overrides = { ...(pkg.overrides || {}), react: '19.3.0', 'react-dom': '19.3.0' };
+    write(packagePath, JSON.stringify(pkg, null, 2) + '\n');
+  }
+
   const vitePath = 'vite.config.ts';
   if (fs.existsSync(path.join(root, vitePath))) {
     let vite = read(vitePath);
     if (!vite.includes("dedupe: ['react', 'react-dom']")) {
       if (vite.includes('resolve: {')) {
         vite = vite.replace('resolve: {', "resolve: {\n    dedupe: ['react', 'react-dom'],");
-      } else if (vite.includes('plugins: [')) {
-        vite = vite.replace('plugins: [', "resolve: { dedupe: ['react', 'react-dom'] },\n  plugins: [");
       } else {
         vite = vite.replace(/export default defineConfig\(\{/, "export default defineConfig({\n  resolve: { dedupe: ['react', 'react-dom'] },");
       }
     }
-    write(vitePath, vite);
-  }
-
-  const reactPackages = [];
-  const scanReact = (dir, depth = 0) => {
-    if (depth > 4 || !fs.existsSync(dir)) return;
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      if (entry.name === 'node_modules' && depth > 0) {
-        const candidate = path.join(dir, entry.name, 'react', 'package.json');
-        if (fs.existsSync(candidate)) reactPackages.push(candidate);
-        continue;
+    if (!vite.includes("react: path.resolve(process.cwd(), 'node_modules/react')")) {
+      if (vite.includes('alias: {')) {
+        vite = vite.replace('alias: {', "alias: { react: path.resolve(process.cwd(), 'node_modules/react'), 'react-dom': path.resolve(process.cwd(), 'node_modules/react-dom'),");
+      } else if (vite.includes('resolve: {')) {
+        vite = vite.replace('resolve: {', "resolve: {\n    alias: { react: path.resolve(process.cwd(), 'node_modules/react'), 'react-dom': path.resolve(process.cwd(), 'node_modules/react-dom') },");
       }
-      if (entry.isDirectory() && !entry.name.startsWith('.')) scanReact(path.join(dir, entry.name), depth + 1);
     }
-  };
-  const rootReact = path.join(root, 'node_modules', 'react', 'package.json');
-  if (fs.existsSync(rootReact)) reactPackages.push(rootReact);
-  scanReact(path.join(root, 'node_modules'));
-  const uniqueReactPackages = [...new Set(reactPackages)];
-  if (uniqueReactPackages.length > 1) {
-    console.warn('React runtime QA: nested React packages detected; Vite dedupe is enabled.');
-  } else {
-    console.log('React runtime QA: single React package resolution detected.');
+    write(vitePath, vite);
   }
 }
 console.log('React runtime hardening applied');
+
 
 // Generated Solar hook-scope QA: hooks must be declared in the component body, not module scope.
 {
@@ -593,4 +588,33 @@ console.log('React runtime hardening applied');
     throw new Error('React QA: hook call found outside LanguageSolarSystem component scope');
   }
   console.log('React QA: Solar hook scope verified.');
+}
+
+
+// React runtime QA — generated source hook-scope and single-runtime checks.
+{
+  const files = [
+    'src/App.tsx',
+    'src/components/solar/LanguageSolarSystem.tsx',
+    'src/features/home/HomeView.tsx',
+    'src/features/translator/TranslationCockpit.tsx',
+    'src/features/search/WebSearchView.tsx',
+    'src/features/semantic/SemanticMirrorView.tsx',
+    'src/features/conversation/ConversationMode.tsx',
+    'src/features/media/MediaTranslationView.tsx',
+    'src/features/history/HistoryAndFavoritesView.tsx',
+    'src/features/languages/LanguageExplorerView.tsx',
+    'src/features/vault/TranslationVaultView.tsx',
+    'src/features/settings/EnhancedSettingsView.tsx'
+  ];
+  for (const file of files) {
+    const source = read(file);
+    if (!source.trim()) throw new Error('React QA: empty source ' + file);
+    const firstComponent = source.search(/(?:export\s+)?(?:function|const)\s+[A-Z][A-Za-z0-9_]*/);
+    const prefix = firstComponent >= 0 ? source.slice(0, firstComponent) : source;
+    if (/\buse(State|Effect|Ref|Memo|Callback|Context|Reducer|LayoutEffect)\s*\(/.test(prefix)) {
+      throw new Error('React QA: hook call appears before component declaration in ' + file);
+    }
+  }
+  console.log('React QA: generated hook scope and single React runtime configuration verified.');
 }

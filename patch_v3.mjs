@@ -76,21 +76,7 @@ refine("const starCount = mobile ? 900 : 1400;","const starCount = mobile ? 1050
 refine("const starCount = mobile ? 900 : 1700;","const starCount = mobile ? 1050 : 2200;");
 refine("new THREE.PointsMaterial({ color: 0xaec9ff, size: mobile ? 1.25 : 1.7, transparent: true, opacity: 0.78 })","new THREE.PointsMaterial({ color: 0xb8d6ff, size: mobile ? 1.15 : 1.55, transparent: true, opacity: 0.74, depthWrite: false })");
 if (!solarV6.includes("const nebulaSpecs")) {
-  refine("scene.add(stars);", "scene.add(stars);
-    const nebulaTexture = makeGlowTexture();
-    if (nebulaTexture) {
-      const nebulaSpecs = [
-        { color: 0x2148ff, opacity: 0.16, scale: 1500, position: [-360, 160, -480] },
-        { color: 0xa855f7, opacity: 0.12, scale: 1250, position: [420, -80, -360] },
-        { color: 0x22d3ee, opacity: 0.09, scale: 980, position: [-20, 320, 220] },
-      ];
-      nebulaSpecs.forEach((spec) => {
-        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: nebulaTexture, color: spec.color, transparent: true, opacity: spec.opacity, blending: THREE.AdditiveBlending, depthWrite: false }));
-        sprite.scale.set(spec.scale, spec.scale, 1);
-        sprite.position.set(spec.position[0], spec.position[1], spec.position[2]);
-        scene.add(sprite);
-      });
-    }");
+  refine("scene.add(stars);", "scene.add(stars);\\n    const nebulaTexture = makeGlowTexture();\\n    if (nebulaTexture) {\\n      const nebulaSpecs = [\\n        { color: 0x2148ff, opacity: 0.16, scale: 1500, position: [-360, 160, -480] },\\n        { color: 0xa855f7, opacity: 0.12, scale: 1250, position: [420, -80, -360] },\\n        { color: 0x22d3ee, opacity: 0.09, scale: 980, position: [-20, 320, 220] },\\n      ];\\n      nebulaSpecs.forEach((spec) => {\\n        const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: nebulaTexture, color: spec.color, transparent: true, opacity: spec.opacity, blending: THREE.AdditiveBlending, depthWrite: false }));\\n        sprite.scale.set(spec.scale, spec.scale, 1);\\n        sprite.position.set(spec.position[0], spec.position[1], spec.position[2]);\\n        scene.add(sprite);\\n      });\\n    }");
 }
 refine("scene.add(coreGroup);","scene.add(coreGroup);
     const coreLight = new THREE.PointLight(0x6374ff, 900, 620, 2);

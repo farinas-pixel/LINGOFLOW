@@ -177,7 +177,9 @@ console.log('LingoFlow clean Solar UX hardening applied');
 {
   const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
   let solar = read(solarPath);
-  // Legacy canvas-ref declarations are no longer used by the Solar runtime.\n  solar = solar.split('const = useRef< | null>(null);').join('');\n  // Final literal cleanup: no legacy CSS2D symbols survive in generated Solar source.
+  // Legacy canvas-ref declarations are no longer used by the Solar runtime.\n  solar = solar.split('const = useRef< | null>(null);').join('');\n  solar = solar.split("import { , } from 'three/addons/renderers/CSS2DRenderer.js';").join('');
+  solar = solar.split("import {  } from 'three/addons/renderers/CSS2DRenderer.js';").join('');
+  // Final literal cleanup: no legacy CSS2D symbols survive in generated Solar source.
   solar = solar.split('CSS2DRenderer').join('');
   solar = solar.split('CSS2DObject').join('');
   solar = solar.split('labelRendererRef').join('');

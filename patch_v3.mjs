@@ -497,7 +497,6 @@ console.log('LingoFlow Universe orbital hero applied');
   console.log('Universe QA passed: core planet, orbital rings, depth particles and motion verified.');
 }
 
-
 // FINAL SOLAR RUNTIME NORMALIZATION — one label renderer, zero fragile canvas refs
 {
   const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
@@ -618,8 +617,7 @@ console.log('React runtime hardening applied');
   }
   console.log('React QA: generated hook scope and single React runtime configuration verified.');
 }
-
-// FINAL RENDER REACT SINGLETON HARDENING V2
+// FINAL RENDER REACT SINGLETON HARDENING V3 — safe Vite config normalization
 {
   const packagePath='package.json';
   if(fs.existsSync(path.join(root,packagePath))){
@@ -632,14 +630,39 @@ console.log('React runtime hardening applied');
   if(fs.existsSync(path.join(root,vitePath))){
     let vite=read(vitePath);
     if(!vite.includes("import path from 'node:path';")) vite="import path from 'node:path';\n"+vite;
-    const marker='// LingoFlow singleton V2';
-    if(!vite.includes(marker)){
-      const resolveBlock="resolve: {\n    // LingoFlow singleton V2\n    dedupe: ['react','react-dom'],\n    alias: [\n      { find: /^react$/, replacement: path.resolve(process.cwd(),'node_modules/react') },\n      { find: /^react\\/(.*)$/, replacement: path.resolve(process.cwd(),'node_modules/react') + '/$1' },\n      { find: /^react-dom$/, replacement: path.resolve(process.cwd(),'node_modules/react-dom') },\n      { find: /^react-dom\\/(.*)$/, replacement: path.resolve(process.cwd(),'node_modules/react-dom') + '/$1' }\n    ],\n  },";
-      if(vite.includes('resolve: {')) vite=vite.replace('resolve: {',resolveBlock);
-      else vite=vite.replace(/export default defineConfig\(\{/, 'export default defineConfig({\n  '+resolveBlock);
+    // Remove any previous singleton V2/V3 resolve injection before applying one valid block.
+    vite=vite.replace(/\\n?\\s*\/\\/ LingoFlow singleton V2[\\s\\S]*?\\n\\s*},\\n(?=\\s*(?:plugins|server|build|define|optimizeDeps|esbuild|base|css|preview|test|assetsInclude|publicDir|root|resolve)\\s*:)/g,'\\n');
+    const resolveBlock=`resolve: {
+    // LingoFlow singleton V3
+    dedupe: ['react','react-dom'],
+    alias: [
+      { find: /^react$/, replacement: path.resolve(process.cwd(),'node_modules/react') },
+      { find: /^react\\/(.*)$/, replacement: path.resolve(process.cwd(),'node_modules/react') + '/$1' },
+      { find: /^react-dom$/, replacement: path.resolve(process.cwd(),'node_modules/react-dom') },
+      { find: /^react-dom\\/(.*)$/, replacement: path.resolve(process.cwd(),'node_modules/react-dom') + '/$1' }
+    ],
+  },`;
+    // Replace a top-level resolve object only when it can be located safely.
+    const resolveMatch=/\\n\\s*resolve\\s*:\\s*\\{[\\s\\S]*?\\n\\s*\\},(?=\\s*(?:plugins|server|build|define|optimizeDeps|esbuild|base|css|preview|test|assetsInclude|publicDir|root)\\s*:)/m.exec(vite);
+    if(resolveMatch){
+      vite=vite.slice(0,resolveMatch.index)+'\n  '+resolveBlock+','+vite.slice(resolveMatch.index+resolveMatch[0].length);
+    } else if(!vite.includes('LingoFlow singleton V3')){
+      const marker=/export default defineConfig\\(\\{/.exec(vite);
+      if(!marker) throw new Error('React singleton QA: defineConfig anchor missing');
+      vite=vite.slice(0,marker.index+marker[0].length)+'\n  '+resolveBlock+','+vite.slice(marker.index+marker[0].length);
     }
     write(vitePath,vite);
+    // Parse the config immediately so Render fails here with a precise diagnostic, never later.
+    try {
+      const { transform } = await import('esbuild');
+      await transform(vite,{loader:'ts',format:'esm',logLevel:'silent'});
+    } catch (error) {
+      throw new Error('React singleton QA: vite.config.ts syntax invalid after normalization: '+error.message);
+    }
   }
-  for(const lock of ['package-lock.json','npm-shrinkwrap.json']){const p=path.join(root,lock);if(fs.existsSync(p))fs.unlinkSync(p);}
-  console.log('FINAL RENDER REACT SINGLETON V2 PASSED');
+  for(const lock of ['package-lock.json','npm-shrinkwrap.json']){
+    const p=path.join(root,lock);
+    if(fs.existsSync(p))fs.unlinkSync(p);
+  }
+  console.log('FINAL RENDER REACT SINGLETON V3 PASSED');
 }

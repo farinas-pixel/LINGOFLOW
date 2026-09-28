@@ -322,8 +322,6 @@ console.log('Final deterministic Solar normalization applied');
   solar = solar.split('(selectedPlanet || hoveredLanguage).script').join('selectedPlanet.script');
   solar = solar.split('(selectedPlanet || hoveredLanguage).code').join('selectedPlanet.code');
 
-  write(solarPath, solar);
-
   const appPath = 'src/App.tsx';
   let app = read(appPath);
   app = app.split("import { ArchitectureExplorer } from './features/workspace/ArchitectureExplorer';\n").join('');
@@ -332,10 +330,19 @@ console.log('Final deterministic Solar normalization applied');
   app = app.split("{activeView === 'services' && <ServiceRegistryView />}").join('');
   write(appPath, app);
 
-  // Runtime safety: the canvas ref must be declared even when the earlier typed-ref patch did not match.
+  // Runtime safety: persist the canvas ref declaration before QA reads the generated source.
   if (!solar.includes('const worldLabelCanvasRef = useRef<HTMLCanvasElement | null>(null);')) {
-    solar = solar.replace('const catalogPointsRef = useRef(null);', 'const catalogPointsRef = useRef(null);\n  const worldLabelCanvasRef = useRef<HTMLCanvasElement | null>(null);');
+    const typedCatalogRef = 'const catalogPointsRef = useRef<THREE.Points | null>(null);';
+    const plainCatalogRef = 'const catalogPointsRef = useRef(null);';
+    if (solar.includes(typedCatalogRef)) {
+      solar = solar.replace(typedCatalogRef, typedCatalogRef + '\n  const worldLabelCanvasRef = useRef<HTMLCanvasElement | null>(null);');
+    } else if (solar.includes(plainCatalogRef)) {
+      solar = solar.replace(plainCatalogRef, plainCatalogRef + '\n  const worldLabelCanvasRef = useRef<HTMLCanvasElement | null>(null);');
+    } else {
+      throw new Error('Production QA: catalogPointsRef declaration anchor missing');
+    }
   }
+  write(solarPath, solar);
   const finalSolar = read(solarPath);
   const finalApp = read(appPath);
   for (const symbol of ['worldLabelCanvasRef', 'catalogPointsRef', 'selectedPlanet']) {

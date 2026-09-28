@@ -173,19 +173,19 @@ console.log('LingoFlow production App shell applied');
 console.log('LingoFlow clean Solar UX hardening applied');
 
 
-// Last-mile Solar compile guard: always declare the canvas ref before any cleanup/render code uses it.
+// Final Solar cleanup — literal operations only, no generated regex or escaped newlines.
 {
   const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
   let solar = read(solarPath);
-  // Legacy canvas-ref declarations are no longer used by the Solar runtime.\n  solar = solar.split('const = useRef< | null>(null);').join('');\n  solar = solar.split("import { , } from 'three/addons/renderers/CSS2DRenderer.js';").join('');
+  solar = solar.split("import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';").join('');
+  solar = solar.split("import { , } from 'three/addons/renderers/CSS2DRenderer.js';").join('');
   solar = solar.split("import {  } from 'three/addons/renderers/CSS2DRenderer.js';").join('');
-  // Final literal cleanup: no legacy CSS2D symbols survive in generated Solar source.
   solar = solar.split('CSS2DRenderer').join('');
   solar = solar.split('CSS2DObject').join('');
   solar = solar.split('labelRendererRef').join('');
-  solar = solar.split('languageLabelsRef').join('');\n  solar = solar.split("import { , } from 'three/addons/renderers/CSS2DRenderer.js';").join('');
-  solar = solar.split("import {  } from 'three/addons/renderers/CSS2DRenderer.js';").join('');
-
+  solar = solar.split('languageLabelsRef').join('');
+  write(solarPath, solar);
+}
   // Keep the focus card intentional: only a deliberate tap/selection opens the action card.
   solar = solar.replace('{(selectedPlanet || hoveredLanguage) && (', '{selectedPlanet && (');
   solar = solar.replace('(selectedPlanet || hoveredLanguage).name', 'selectedPlanet.name');

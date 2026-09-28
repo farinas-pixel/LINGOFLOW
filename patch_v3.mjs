@@ -260,6 +260,9 @@ console.log('LingoFlow Product Design System v2 applied');
     const anchor = solar.match(/const\\s+catalogPointsRef\\s*=\\s*useRef[^;]+;/);
     if (anchor) solar = solar.replace(anchor[0], anchor[0] + "\\n  const worldLabelCanvasRef = useRef<HTMLCanvasElement | null>(null);");
   }
+  // Remove malformed declarations created by legacy-symbol cleanup.
+  solar = solar.replace(/const\\s*=\\s*useRef<\\s*\\|\\s*null>\\(null\\);/g, '');
+  solar = solar.replace(/import\\s*\\{\\s*\\}\\s*from\\s*'three\\/addons\\/renderers\\/CSS2DRenderer\\.js';/g, '');
   // Final literal cleanup: no legacy CSS2D symbols survive in generated Solar source.
   solar = solar.split('CSS2DRenderer').join('');
   solar = solar.split('CSS2DObject').join('');

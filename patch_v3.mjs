@@ -260,28 +260,25 @@ console.log('LingoFlow Product Design System v2 applied');
 {
   const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
   let solar = read(solarPath);
-  solar = solar.replace(/\nimport \{ CSS2DRenderer, CSS2DObject \} from 'three\/addons\/renderers\/CSS2DRenderer\.js';/g, '');
+  solar = solar.replace(/CSS2DRenderer, CSS2DObject/g, '');
   solar = solar.replace(/\n\\s*const labelRendererRef = useRef<CSS2DRenderer \\| null>\\(null\\);/g, '');
   solar = solar.replace(/\n\\s*const languageLabelsRef = useRef<CSS2DObject\\[\\]>(\\[\\]);/g, '');
   solar = solar.replace(/\n\\s*labelRendererRef\\.current = labelRenderer;/g, '');
-  solar = solar.replace(/\n\\s*const labelRenderer = new CSS2DRenderer\\(\\);[\\s\\S]*?mount\\.appendChild\\(labelRenderer\\.domElement\\);/g, '');
-  solar = solar.replace(/\n\\s*const makeLabel = \\(lang: LanguagePlanetData\\) => \\{[\\s\\S]*?languageLabelsRef\\.current\\.push\\(label\\); \\}\\);/g, '');
-  solar = solar.replace(/\n\\s*languageLabelsRef\\.current\\.forEach\\(\\(label\\) => \\{[\\s\\S]*?\\}\\);/g, '');
-  solar = solar.replace(/\\n\\s*labelRenderer\\.render\\(scene, camera\\);/g, '');
-  solar = solar.replace(/\\n\\s*labelRenderer\\.setSize\\(width, height\\);/g, '');
-  solar = solar.replace(/\\n\\s*labelRenderer\\.domElement\\.remove\\(\\);/g, '');
-  solar = solar.replace(/\\n\\s*languageLabelsRef\\.current = \\[\\]; labelRendererRef\\.current = null;/g, '');
+  solar = solar.replace(/\n\\s*labelRenderer\\.render\\(scene, camera\\);/g, '');
+  solar = solar.replace(/\n\\s*labelRenderer\\.setSize\\(width, height\\);/g, '');
+  solar = solar.replace(/\n\\s*labelRenderer\\.domElement\\.remove\\(\\);/g, '');
+  solar = solar.replace(/\n\\s*languageLabelsRef\\.current = \\[\\]; labelRendererRef\\.current = null;/g, '');
   if (!solar.includes('const worldLabelCanvasRef')) {
     const anchor = solar.match(/const\\s+catalogPointsRef\\s*=\\s*useRef[^;]+;/);
     if (anchor) solar = solar.replace(anchor[0], anchor[0] + "\\n  const worldLabelCanvasRef = useRef<HTMLCanvasElement | null>(null);");
   }
-  // Selection should be intentional; hover remains lightweight and does not open a persistent action panel.
+  // Keep the focus card intentional: only a deliberate tap/selection opens the action card.
   solar = solar.replace('{(selectedPlanet || hoveredLanguage) && (', '{selectedPlanet && (');
-  solar = solar.replace('{(selectedPlanet || hoveredLanguage).name}', '{selectedPlanet.name}');
-  solar = solar.replace('{(selectedPlanet || hoveredLanguage).nativeName && <div className="mt-0.5 text-base text-slate-300">{(selectedPlanet || hoveredLanguage).nativeName}</div>}', '{selectedPlanet.nativeName && <div className="mt-0.5 text-base text-slate-300">{selectedPlanet.nativeName}</div>}');
-  solar = solar.replace('{(selectedPlanet || hoveredLanguage).family || \'Language family unavailable\'} · {(selectedPlanet || hoveredLanguage).script || \'Script data unavailable\'}', '{selectedPlanet.family || \'Language family unavailable\'} · {selectedPlanet.script || \'Script data unavailable\'}');
-  solar = solar.replace('{(selectedPlanet || hoveredLanguage).code}', '{selectedPlanet.code}');
-  solar = solar.replace('{(selectedPlanet || hoveredLanguage).name}</button>', '{selectedPlanet.name}</button>');
+  solar = solar.replace('(selectedPlanet || hoveredLanguage).name', 'selectedPlanet.name');
+  solar = solar.replace('(selectedPlanet || hoveredLanguage).nativeName', 'selectedPlanet.nativeName');
+  solar = solar.replace('(selectedPlanet || hoveredLanguage).family', 'selectedPlanet.family');
+  solar = solar.replace('(selectedPlanet || hoveredLanguage).script', 'selectedPlanet.script');
+  solar = solar.replace('(selectedPlanet || hoveredLanguage).code', 'selectedPlanet.code');
   write(solarPath, solar);
 }
 console.log('Final deterministic Solar normalization applied');

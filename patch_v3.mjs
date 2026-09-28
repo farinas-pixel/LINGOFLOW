@@ -183,3 +183,74 @@ console.log('LingoFlow clean Solar UX hardening applied');
   write(solarPath, solar);
 }
 console.log('Solar canvas ref guard applied');
+
+
+// LingoFlow Product Design System v2 — Solar language discovery
+{
+  const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
+  let solar = read(solarPath);
+
+  // One label renderer only: keep world labels on the performant canvas layer.
+  solar = solar.replace(/\nimport \{ CSS2DRenderer, CSS2DObject \} from 'three\/addons\/renderers\/CSS2DRenderer\.js';/, '');
+  solar = solar.replace(/\n\s*const labelRendererRef = useRef<CSS2DRenderer \| null>\(null\);/, '');
+  solar = solar.replace(/\n\s*const languageLabelsRef = useRef<CSS2DObject\[\]>\(\[\]\);/, '');
+  solar = solar.replace(/\n\s*labelRendererRef\.current = labelRenderer;/g, '');
+  solar = solar.replace(/\n\s*const labelRenderer = new CSS2DRenderer\(\);[\s\S]*?mount\.appendChild\(labelRenderer\.domElement\);/, '');
+  solar = solar.replace(/\n\s*const makeLabel = \(lang: LanguagePlanetData\) => \{[\s\S]*?languageLabelsRef\.current\.push\(label\); \}\);/, '');
+  solar = solar.replace(/\n\s*languageLabelsRef\.current\.forEach\(\(label\) => \{[\s\S]*?\}\);/, '');
+  solar = solar.replace(/\n\s*labelRenderer\.render\(scene, camera\);/g, '');
+  solar = solar.replace(/ labelRenderer\.setSize\(width, height\);/g, '');
+  solar = solar.replace(/ labelRenderer\.domElement\.remove\(\);/g, '');
+  solar = solar.replace(/ languageLabelsRef\.current = \[\]; labelRendererRef\.current = null;/g, '');
+
+  // Explicit ISO-639-3 -> LingoFlow code mapping. Never infer by slicing the code.
+  const isoMap = "const LINGOFLOW_ISO3_TO_APP = {eng:'en',spa:'es',fra:'fr',deu:'de',ita:'it',por:'pt',nld:'nl',rus:'ru',ara:'ar',hin:'hi',ben:'bn',tam:'ta',tel:'te',kan:'kn',mal:'ml',mar:'mr',guj:'gu',pan:'pa',urd:'ur',jpn:'ja',kor:'ko',zho:'zh',cmn:'zh',vie:'vi',ind:'id',tha:'th',tur:'tr',pol:'pl',ukr:'uk',swe:'sv',dan:'da',nor:'no',fin:'fi',heb:'he',ell:'el'};";
+  solar = solar.replace(/const supported = SUPPORTED_LANGUAGES\.find\(\(item\) => item\.code === language\.code\.slice\(0, 2\)\);/, isoMap + "\n        const supported = SUPPORTED_LANGUAGES.find((item) => item.code === (LINGOFLOW_ISO3_TO_APP[language.code] || language.code));");
+
+  const panel = [
+    "      {(selectedPlanet || hoveredLanguage) && (",
+    "        <div className=\"absolute left-4 bottom-4 z-20 w-[min(360px,calc(100%-2rem))] rounded-2xl border border-white/10 bg-slate-950/85 p-4 shadow-2xl backdrop-blur-xl\">",
+    "          <div className=\"text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-300\">Language focus</div>",
+    "          <div className=\"mt-1 text-xl font-semibold text-white\">{(selectedPlanet || hoveredLanguage).name}</div>",
+    "          {(selectedPlanet || hoveredLanguage).nativeName && <div className=\"mt-0.5 text-base text-slate-300\">{(selectedPlanet || hoveredLanguage).nativeName}</div>}",
+    "          <div className=\"mt-2 text-xs text-slate-400\">{(selectedPlanet || hoveredLanguage).family || 'Language family unavailable'} · {(selectedPlanet || hoveredLanguage).script || 'Script data unavailable'}</div>",
+    "          <button type=\"button\" className=\"mt-3 w-full rounded-xl bg-white px-3 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-50\" onClick={() => window.dispatchEvent(new CustomEvent('lingoflow:translate-language', { detail: { code: (selectedPlanet || hoveredLanguage).code } }))}>Translate with {(selectedPlanet || hoveredLanguage).name}</button>",
+    "        </div>",
+    "      )}"
+  ].join('\n');
+  const returnAnchor = solar.lastIndexOf('\n    </div>\n  );\n}');
+  if (returnAnchor >= 0 && !solar.includes('Language focus')) solar = solar.slice(0, returnAnchor) + '\n' + panel + solar.slice(returnAnchor);
+  write(solarPath, solar);
+
+  const serverPath = 'server.ts';
+  let server = read(serverPath);
+  const oldEntry = "const entries = rows.filter((row)=>row[index.get('Level') ?? -1]==='language' && Boolean(row[index.get('ISO639P3code') ?? -1])).map((row)=>({code:row[index.get('ISO639P3code') ?? -1],name:row[index.get('Name') ?? -1],nativeName:row[index.get('Name') ?? -1],script:'Language catalog',family:familyNames.get(row[index.get('Family_ID') ?? -1]) || 'World language',level:'language'}));";
+  const newEntry = "const languageMeta = {eng:{nativeName:'English',script:'Latin',family:'Indo-European'},spa:{nativeName:'Español',script:'Latin',family:'Indo-European'},fra:{nativeName:'Français',script:'Latin',family:'Indo-European'},deu:{nativeName:'Deutsch',script:'Latin',family:'Indo-European'},hin:{nativeName:'हिन्दी',script:'Devanagari',family:'Indo-European'},tam:{nativeName:'தமிழ்',script:'Tamil',family:'Dravidian'},tel:{nativeName:'తెలుగు',script:'Telugu',family:'Dravidian'},kan:{nativeName:'ಕನ್ನಡ',script:'Kannada',family:'Dravidian'},mal:{nativeName:'മലയാളം',script:'Malayalam',family:'Dravidian'},ben:{nativeName:'বাংলা',script:'Bengali',family:'Indo-European'},jpn:{nativeName:'日本語',script:'Japanese',family:'Japonic'},kor:{nativeName:'한국어',script:'Hangul',family:'Koreanic'},zho:{nativeName:'中文',script:'Chinese',family:'Sino-Tibetan'},ara:{nativeName:'العربية',script:'Arabic',family:'Afro-Asiatic'},rus:{nativeName:'Русский',script:'Cyrillic',family:'Indo-European'}}; const entries = rows.filter((row)=>row[index.get('Level') ?? -1]==='language' && Boolean(row[index.get('ISO639P3code') ?? -1])).map((row)=>{ const code=row[index.get('ISO639P3code') ?? -1]; const meta=languageMeta[code] || {}; return {code,name:row[index.get('Name') ?? -1],nativeName:meta.nativeName || row[index.get('Name') ?? -1],script:meta.script || 'Script data unavailable',family:meta.family || familyNames.get(row[index.get('Family_ID') ?? -1]) || 'World language',level:'language'}; });";
+  if (server.includes(oldEntry)) server = server.replace(oldEntry, newEntry);
+  write(serverPath, server);
+
+  const appPath = 'src/App.tsx';
+  let app = read(appPath);
+  const bridge = [
+    "  useEffect(() => {",
+    "    const onTranslateLanguage = (event: Event) => {",
+    "      const code = (event as CustomEvent<{code?: string}>).detail?.code;",
+    "      const mapped = {eng:'en',spa:'es',fra:'fr',deu:'de',ita:'it',por:'pt',nld:'nl',rus:'ru',ara:'ar',hin:'hi',ben:'bn',tam:'ta',tel:'te',kan:'kn',mal:'ml',mar:'mr',guj:'gu',pan:'pa',urd:'ur',jpn:'ja',kor:'ko',zho:'zh',cmn:'zh',vie:'vi',ind:'id',tha:'th',tur:'tr',pol:'pl',ukr:'uk',swe:'sv',dan:'da',nor:'no',fin:'fi',heb:'he',ell:'el'} as Record<string,string>;",
+    "      const target = mapped[code || ''] || code;",
+    "      if (!target) return;",
+    "      setTargetLanguage(target);",
+    "      setActiveView('translator');",
+    "    };",
+    "    window.addEventListener('lingoflow:translate-language', onTranslateLanguage);",
+    "    return () => window.removeEventListener('lingoflow:translate-language', onTranslateLanguage);",
+    "  }, []);"
+  ].join('\n');
+  if (!app.includes('lingoflow:translate-language')) {
+    const anchor = "  const handleSwapLanguages = () => { const current = sourceLanguage; setSourceLanguage(targetLanguage); setTargetLanguage(current); };";
+    if (!app.includes(anchor)) throw new Error('App journey anchor missing');
+    app = app.replace(anchor, anchor + '\n' + bridge);
+  }
+  write(appPath, app);
+}
+console.log('LingoFlow Product Design System v2 applied');
+

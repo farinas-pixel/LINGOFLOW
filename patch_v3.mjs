@@ -471,13 +471,13 @@ console.log('Final Solar product redesign applied');
 }
 
 
-// REAL ORBITAL MOTION — integrated into the existing Three.js frame loop
+// REAL ORBITAL MOTION — integrated into the existing Three.js RAF loop
 {
   const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
   let solar = read(solarPath);
   const riskyHook = /\n\s*\/\/ REAL ORBITAL MOTION[\s\S]*?\n\s*\}, \[selectedPlanet\]\);\n/;
   solar = solar.replace(riskyHook, '\n');
-  const renderAnchor = '      composer.render(dt);';
+  const anchors = ['requestAnimationFrame(animate);','requestAnimationFrame(loop);','requestAnimationFrame(render);'];
   const motion = [
     '      // REAL ORBITAL MOTION — no React hooks in the animation path',
     '      const orbitElapsed = performance.now();',
@@ -493,14 +493,13 @@ console.log('Final Solar product redesign applied');
     '        const selected = selectedPlanet?.code === language?.code;',
     '        const pulse = selected ? 1 + Math.sin(orbitElapsed * 0.006) * 0.13 : 1;',
     '        planet.scale.setScalar((selected ? 1.18 : 1) * pulse);',
-    '        const material = planet.material as THREE.MeshStandardMaterial;',
-    '        material.emissiveIntensity = selected ? 0.72 + Math.sin(orbitElapsed * 0.005) * 0.12 : 0.32;',
     '      });',
     '      const animatedCatalog = catalogPointsRef.current;',
     '      if (animatedCatalog) animatedCatalog.rotation.y = orbitElapsed * 0.000018;',
   ].join('\\n');
-  if (!solar.includes(renderAnchor)) throw new Error('Existing Three.js render anchor missing');
-  if (!solar.includes('REAL ORBITAL MOTION — no React hooks in the animation path')) solar = solar.replace(renderAnchor, motion + '\\n' + renderAnchor);
+  const anchor = anchors.find((item) => solar.includes(item));
+  if (!anchor) throw new Error('Existing Three.js RAF anchor missing');
+  if (!solar.includes('REAL ORBITAL MOTION — no React hooks in the animation path')) solar = solar.replace(anchor, motion + '\\n' + anchor);
   write(solarPath, solar);
   const cssPath = 'src/index.css';
   let css = read(cssPath);

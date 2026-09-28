@@ -48,6 +48,23 @@ solarV6 = visualReplace("core.rotation.y += dt * 0.15;\n      stars.rotation.y +
 solarV6 = solarV6.replace("const [selectedPlanet, setSelectedPlanet] = useState<LanguagePlanetData | null>(null);", "const [selectedPlanet, setSelectedPlanet] = useState<LanguagePlanetData | null>(() => getLanguageByCode(targetLanguageCode) ?? null);");
 solarV6 = solarV6.replace("<div ref={mountRef} className=\"relative w-full h-[420px] sm:h-[480px] cursor-grab active:cursor-grabbing touch-none\">", "<div className=\"px-5 pt-5 sm:px-7\"><div className=\"text-[10px] uppercase tracking-[.3em] text-[#8e98ff]\">EXPLORE · DISCOVER · TRANSLATE</div><h1 className=\"mt-1 text-2xl sm:text-4xl font-bold tracking-tight text-white\">Language <span className=\"bg-gradient-to-r from-[#7c83ff] via-[#22d3ee] to-[#a855f7] bg-clip-text text-transparent\">Universe</span></h1><p className=\"mt-1 text-xs sm:text-sm text-slate-400\">A 3D interactive journey through the world's languages</p></div><div ref={mountRef} className=\"relative w-full h-[560px] sm:h-[650px] cursor-grab active:cursor-grabbing touch-none\">");
 solarV6 = solarV6.replace("      <div className=\"flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b", "      <div className=\"flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b");
+
+// V6.1 WebGL safety + deterministic visual fallback
+if (!solarV6.includes('LingoFlow WebGL fallback')) {
+  const effectAnchor = 'useEffect(() => {';
+  if (!solarV6.includes(effectAnchor)) throw new Error('V6.1 QA: Solar useEffect anchor missing');
+  solarV6 = solarV6.replace(effectAnchor, `useEffect(() => {
+    if (!mountRef.current) return;
+    const probeCanvas = document.createElement('canvas');
+    const webgl = probeCanvas.getContext('webgl2') || probeCanvas.getContext('webgl');
+    if (!webgl) {
+      mountRef.current.innerHTML = '<div class="absolute inset-0 flex items-center justify-center rounded-2xl border border-slate-800 bg-[#050816] p-8 text-center"><div><div class="text-sm font-semibold text-white">LingoFlow WebGL fallback</div><div class="mt-2 max-w-md text-xs leading-5 text-slate-400">3D graphics are unavailable on this device or browser. The language workspace remains usable; try enabling hardware acceleration or opening LingoFlow in a modern browser.</div></div></div>';
+      return;
+    }`);
+}
+if (!solarV6.includes('const coreGroup')) throw new Error('V6.1 QA: coreGroup missing');
+if (!solarV6.includes('coreGroup.rotation.y')) throw new Error('V6.1 QA: core animation missing');
+if (!solarV6.includes('makeLanguageLabelTexture')) throw new Error('V6.1 QA: language labels missing');
 write('src/components/solar/LanguageSolarSystem.tsx', solarV6);
 console.log('LingoFlow V6 Language Universe visual patch applied');
 process.exit(0);

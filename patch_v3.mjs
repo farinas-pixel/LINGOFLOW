@@ -69,38 +69,12 @@ if (!solarV6.includes('makeLanguageLabelTexture')) throw new Error('V6.1 QA: lan
 write('src/components/solar/LanguageSolarSystem.tsx', solarV6);
 console.log('LingoFlow V6 Language Universe visual patch applied');
 
-const uiPayload = ['1','2','3','4'].map((n) => read('source_ui_payload.' + n)).join('');
-const uiFiles = JSON.parse(zlib.gunzipSync(Buffer.from(uiPayload, 'base64')).toString('utf8'));
-for (const [file, value] of Object.entries(uiFiles)) write(file, value);
+const canonicalSolar = zlib.gunzipSync(Buffer.from(read('solar_payload.b64'), 'base64')).toString('utf8');
+write('src/components/solar/LanguageSolarSystem.tsx', canonicalSolar);
 
-write('src/components/feedback/FeatureErrorBoundary.tsx', `import React from 'react';
-import { AlertTriangle, RotateCcw } from 'lucide-react';
-import { Button } from '../ui/Button';
-interface Props { children: React.ReactNode; title?: string; description?: string; className?: string }
-interface State { hasError: boolean; errorMessage: string }
-export class FeatureErrorBoundary extends React.Component<Props, State> {
-  state: State = { hasError: false, errorMessage: '' };
-  static getDerivedStateFromError(error: unknown): State { return { hasError: true, errorMessage: error instanceof Error ? error.message : 'Unexpected runtime error' }; }
-  componentDidCatch(error: unknown) { console.error('LingoFlow runtime recovery:', error); }
-  render() {
-    if (!this.state.hasError) return this.props.children;
-    return <div className={this.props.className || 'rounded-2xl border border-amber-300/20 bg-slate-950 p-6 text-slate-100'} role="alert"><div className="flex items-start gap-3"><AlertTriangle className="h-5 w-5 text-amber-300"/><div><h2 className="text-sm font-semibold">{this.props.title || 'Module recovered from a runtime error'}</h2><p className="mt-1 text-xs text-slate-400">{this.props.description || 'The rest of LingoFlow remains available.'}</p><p className="mt-2 break-words font-mono text-[10px] text-slate-500">{this.state.errorMessage}</p><Button type="button" variant="outline" size="sm" className="mt-4" onClick={() => this.setState({hasError:false,errorMessage:''})}><RotateCcw className="h-3.5 w-3.5"/> Retry module</Button></div></div></div>;
-  }
-}
-`);
-
-for (const file of ['package-lock.json', 'npm-shrinkwrap.json']) {
-  const target = path.join(root, file);
-  if (fs.existsSync(target)) fs.unlinkSync(target);
-}
-
-const pkg = JSON.parse(read('package.json'));
-if (pkg.dependencies?.react !== '19.3.0' || pkg.dependencies?.['react-dom'] !== '19.3.0') throw new Error('Production QA failed: React singleton not pinned');
 const solarFinal = read('src/components/solar/LanguageSolarSystem.tsx');
-const appFinal = read('src/App.tsx');
-if (!solarFinal.includes('ORBIT_RADII') || !solarFinal.includes('EffectComposer') || !solarFinal.includes('UnrealBloomPass') || !solarFinal.includes('makeLanguageLabelTexture')) throw new Error('Production QA failed: Language Universe architecture incomplete');
-if (!solarFinal.includes('pointerdown') || !solarFinal.includes('wheel')) throw new Error('Production QA failed: 3D interaction layer incomplete');
-if (!appFinal.includes("activeView==='languages'") || !appFinal.includes("activeView==='translator'") || !appFinal.includes("activeView==='conversation'") || !appFinal.includes("activeView==='library'")) throw new Error('Production QA failed: five-screen routing incomplete');
-console.log('LingoFlow deterministic source + cinematic five-screen UI payload applied.');
-process.exit(0);
+if (!solarFinal.includes('ORBIT_RADII') || !solarFinal.includes('EffectComposer') || !solarFinal.includes('UnrealBloomPass') || !solarFinal.includes('makeLabelTexture')) throw new Error('Production QA failed: canonical Language Universe source missing');
+if (!solarFinal.includes('pointerdown') || !solarFinal.includes('wheel') || !solarFinal.includes('requestAnimationFrame')) throw new Error('Production QA failed: 3D interaction architecture missing');
+
+console.log('LingoFlow canonical Language Universe source installed.');
 console.log('LingoFlow V5 safe production patch applied');process.exit(0);

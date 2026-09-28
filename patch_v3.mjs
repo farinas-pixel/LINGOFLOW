@@ -34,6 +34,7 @@ once('src/config/app.config.ts', "label: 'Languages',", "label: 'World Languages
 once('src/components/layout/Sidebar.tsx', 'Production-focused TypeScript architecture with explicit service states.', 'Real translation workspace · local history · connected AI');
 once('src/components/layout/Sidebar.tsx', 'Storage: Local', 'Local workspace');
 once('src/features/languages/LanguageExplorerView.tsx', 'Ready for zero-latency execution', 'Available offline when an installed local pack supports it');
+once('src/features/languages/LanguageExplorerView.tsx', 'zero-latency execution', 'responsive local execution');
 once('src/features/home/HomeView.tsx', 'import {\n  Sparkles,\n  ArrowRight,\n  HardDrive,\n  MessagesSquare,\n  FileText,\n  ShieldCheck,\n  Layers,\n  Zap,\n  Globe,\n  Lock,\n} from \'lucide-react\';', "import { Sparkles, ArrowRight } from 'lucide-react';");
 once('src/features/home/HomeView.tsx', "import { Card } from '../../components/ui/Card';\n", '');
 once('src/features/home/HomeView.tsx', "import { cn } from '../../utils/cn';\n", '');
@@ -387,11 +388,29 @@ console.log('Final deterministic Solar normalization applied');
     }
   }
 
+  const languageSource = read('src/features/languages/LanguageExplorerView.tsx');
+  for (const misleading of ['zero-latency execution','Ready for zero-latency execution','100%','100 %']) {
+    if (homeSource.includes(misleading) || sidebarSource.includes(misleading) || languageSource.includes(misleading)) {
+      throw new Error('Production QA: misleading product claim remains: ' + misleading);
+    }
+  }
+
   const server = read('server.ts');
   for (const endpoint of ['/api/health','/api/translate','/api/web-search','/api/semantic-mirror','/api/ocr-translate','/api/languages']) {
     if (!server.includes(endpoint)) throw new Error('Production QA: required backend endpoint missing: ' + endpoint);
   }
   console.log('Production QA passed: Solar, App shell, and required backend routes verified.');
+
+// Build hygiene: migrate the current Vite config away from the deprecated native config-loader __dirname warning.
+{
+  const vitePath = 'vite.config.ts';
+  if (fs.existsSync(path.join(root, vitePath))) {
+    let vite = read(vitePath);
+    vite = vite.replace(/__dirname/g, 'import.meta.dirname');
+    write(vitePath, vite);
+  }
+}
+console.log('Vite config compatibility cleanup applied');
 }
 
 

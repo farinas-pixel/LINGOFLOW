@@ -525,3 +525,158 @@ console.log('Real orbital motion applied');
   if (!solar.includes('catalogPoints.rotation.y')) throw new Error('Orbital motion QA failed: world catalog motion missing');
   console.log('Orbital motion QA passed: supported planets and world catalog move continuously around the core.');
 }
+
+
+// LINGOFLOW UNIVERSE — hero-core orbital redesign
+{
+  const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
+  let solar = read(solarPath);
+
+  if (!solar.includes('LINGOFLOW UNIVERSE ORBIT CORE')) {
+    const anchor = "    const orbitGroup = new THREE.Group();";
+    const visual = `
+    // LINGOFLOW UNIVERSE ORBIT CORE
+    const universeCore = new THREE.Group();
+    universeCore.name = 'LingoFlowUniverseCore';
+
+    const coreOuter = new THREE.Mesh(
+      new THREE.SphereGeometry(30, 32, 32),
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color('#101a5f'),
+        emissive: new THREE.Color('#315cff'),
+        emissiveIntensity: 1.5,
+        metalness: 0.35,
+        roughness: 0.18,
+        transparent: true,
+        opacity: 0.98
+      })
+    );
+    universeCore.add(coreOuter);
+
+    const coreGlow = new THREE.Mesh(
+      new THREE.SphereGeometry(38, 24, 24),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color('#4169ff'),
+        transparent: true,
+        opacity: 0.12,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      })
+    );
+    universeCore.add(coreGlow);
+
+    const coreHalo = new THREE.Mesh(
+      new THREE.RingGeometry(42, 44, 96),
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color('#8b5cf6'),
+        transparent: true,
+        opacity: 0.58,
+        side: THREE.DoubleSide,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      })
+    );
+    coreHalo.rotation.x = Math.PI * 0.5;
+    universeCore.add(coreHalo);
+
+    const coreLight = new THREE.PointLight('#5277ff', 7, 520, 2);
+    universeCore.add(coreLight);
+    orbitGroup.add(universeCore);
+
+    const universeOrbitRadii = [105, 150, 205, 265, 330, 405];
+    universeOrbitRadii.forEach((radius, index) => {
+      const ring = new THREE.LineLoop(
+        new THREE.EllipseCurve(0, 0, radius, radius * (0.72 + index * 0.018), 0, Math.PI * 2, false, 0).getPoints(128).map((p) => new THREE.Vector3(p.x, 0, p.y)),
+        new THREE.LineBasicMaterial({
+          color: index % 2 === 0 ? '#355cff' : '#8b5cf6',
+          transparent: true,
+          opacity: 0.13 + index * 0.012,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false
+        })
+      );
+      ring.rotation.x = Math.PI * 0.5;
+      ring.userData.orbitRadius = radius;
+      ring.userData.orbitIndex = index;
+      orbitGroup.add(ring);
+    });
+
+    const coreDustGeometry = new THREE.BufferGeometry();
+    const coreDustPositions = [];
+    for (let i = 0; i < 280; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const radius = 62 + Math.random() * 420;
+      coreDustPositions.push(
+        Math.cos(angle) * radius,
+        (Math.random() - 0.5) * 80,
+        Math.sin(angle) * radius
+      );
+    }
+    coreDustGeometry.setAttribute('position', new THREE.Float32BufferAttribute(coreDustPositions, 3));
+    const coreDust = new THREE.Points(
+      coreDustGeometry,
+      new THREE.PointsMaterial({
+        color: '#78a9ff',
+        size: 1.4,
+        transparent: true,
+        opacity: 0.48,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      })
+    );
+    orbitGroup.add(coreDust);
+
+    `;
+    if (!solar.includes(anchor)) throw new Error('Universe core anchor missing');
+    solar = solar.replace(anchor, visual + anchor);
+  }
+
+  // Give supported language planets more presence while keeping the catalog performant.
+  solar = solar.replace(
+    "new THREE.SphereGeometry(lang.size * 1.35, 20, 20)",
+    "new THREE.SphereGeometry(lang.size * 2.05, 24, 24)"
+  );
+  solar = solar.replace(
+    "emissiveIntensity: 0.32, roughness: 0.58, metalness: 0.18",
+    "emissiveIntensity: 0.58, roughness: 0.42, metalness: 0.22"
+  );
+
+  // Animate the core, orbital rings and dust independently from language motion.
+  if (!solar.includes('universeCore.rotation.y')) {
+    const motionAnchor = "      const catalogPoints = catalogPointsRef.current;";
+    const motion = `
+      const core = scene.getObjectByName('LingoFlowUniverseCore');
+      if (core) {
+        core.rotation.y = elapsed * 0.00012;
+        const halo = core.children.find((child) => child.geometry?.type === 'RingGeometry');
+        if (halo) halo.rotation.z = elapsed * 0.00022;
+        const glow = core.children.find((child) => child.geometry?.type === 'SphereGeometry' && child !== coreOuter);
+        if (glow) glow.scale.setScalar(1 + Math.sin(elapsed * 0.003) * 0.035);
+      }
+`;
+    if (!solar.includes(motionAnchor)) throw new Error('Orbital motion anchor missing');
+    solar = solar.replace(motionAnchor, motion + motionAnchor);
+  }
+
+  write(solarPath, solar);
+
+  const cssPath = 'src/index.css';
+  let css = read(cssPath);
+  if (!css.includes('.lingoflow-universe-shell')) {
+    css += `
+.lingoflow-universe-shell{background:radial-gradient(circle at 50% 48%,rgba(57,83,255,.10),transparent 32%),radial-gradient(circle at 72% 20%,rgba(125,92,255,.08),transparent 28%)}
+.lingoflow-universe-core{filter:drop-shadow(0 0 28px rgba(65,105,255,.28))}
+`;
+  }
+  write(cssPath, css);
+}
+console.log('LingoFlow Universe orbital hero applied');
+
+{
+  const solar = read('src/components/solar/LanguageSolarSystem.tsx');
+  if (!solar.includes('LINGOFLOW UNIVERSE ORBIT CORE')) throw new Error('Universe QA: core missing');
+  if (!solar.includes('universeOrbitRadii')) throw new Error('Universe QA: orbit rings missing');
+  if (!solar.includes('LingoFlowUniverseCore')) throw new Error('Universe QA: core group missing');
+  if (!solar.includes('universeCore.rotation.y')) throw new Error('Universe QA: core animation missing');
+  console.log('Universe QA passed: core planet, orbital rings, depth particles and motion verified.');
+}

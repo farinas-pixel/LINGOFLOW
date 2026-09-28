@@ -512,9 +512,9 @@ console.log('Real orbital motion applied');
 {
   const solar = read('src/components/solar/LanguageSolarSystem.tsx');
   if (!solar.includes('REAL ORBITAL MOTION')) throw new Error('Orbital motion QA failed: animation block missing');
-  if (!solar.includes('requestAnimationFrame(animateLanguageOrbits)')) throw new Error('Orbital motion QA failed: animation loop missing');
+  if (!solar.includes('REAL ORBITAL MOTION — no React hooks in the animation path')) throw new Error('Orbital motion QA failed: integrated animation loop missing');
   if (!solar.includes('planet.position.set(Math.cos(angle) * radius')) throw new Error('Orbital motion QA failed: planet trajectory missing');
-  if (!solar.includes('catalogPoints.rotation.y')) throw new Error('Orbital motion QA failed: world catalog motion missing');
+  if (!solar.includes('animatedCatalog.rotation.y')) throw new Error('Orbital motion QA failed: world catalog motion missing');
   console.log('Orbital motion QA passed: supported planets and world catalog move continuously around the core.');
 }
 

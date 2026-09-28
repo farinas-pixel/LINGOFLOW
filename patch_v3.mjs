@@ -186,8 +186,6 @@ console.log('LingoFlow clean Solar UX hardening applied');
   solar = solar.split('languageLabelsRef').join('');
   write(solarPath, solar);
 }
-  write(solarPath, solar);
-}
 console.log('Final deterministic Solar normalization applied');
 
 

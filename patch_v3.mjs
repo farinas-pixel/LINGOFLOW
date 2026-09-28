@@ -173,20 +173,10 @@ console.log('LingoFlow production App shell applied');
 console.log('LingoFlow clean Solar UX hardening applied');
 
 
-// Final Solar cleanup — literal operations only, no generated regex or escaped newlines.
+// Final Solar cleanup marker — detailed legacy removal is handled by the dedicated runtime normalizer below.
 {
   const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
-  let solar = read(solarPath);
-  solar = solar.split("import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';").join('');
-  solar = solar.split("import { , } from 'three/addons/renderers/CSS2DRenderer.js';").join('');
-  solar = solar.split("import {  } from 'three/addons/renderers/CSS2DRenderer.js';").join('');
-  solar = solar.split('CSS2DRenderer').join('');
-  solar = solar.split('CSS2DObject').join('');
-  solar = solar.split('labelRendererRef').join('');
-  solar = solar.split('languageLabelsRef').join('');
-  solar = solar.split('const = useRef< | null>(null);').join('');
-  solar = solar.split('const = useRef(null);').join('');
-
+  const solar = read(solarPath);
   write(solarPath, solar);
 }
 console.log('Final deterministic Solar normalization applied');

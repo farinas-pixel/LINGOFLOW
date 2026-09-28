@@ -617,7 +617,7 @@ console.log('React runtime hardening applied');
   }
   console.log('React QA: generated hook scope and single React runtime configuration verified.');
 }
-// FINAL RENDER REACT SINGLETON HARDENING V3 — safe Vite config normalization
+// FINAL RENDER REACT SINGLETON HARDENING V4 — dependency-level singleton only
 {
   const packagePath='package.json';
   if(fs.existsSync(path.join(root,packagePath))){
@@ -626,43 +626,9 @@ console.log('React runtime hardening applied');
     pkg.overrides={...(pkg.overrides||{}),react:'19.3.0','react-dom':'19.3.0'};
     write(packagePath,JSON.stringify(pkg,null,2)+'\n');
   }
-  const vitePath='vite.config.ts';
-  if(fs.existsSync(path.join(root,vitePath))){
-    let vite=read(vitePath);
-    if(!vite.includes("import path from 'node:path';")) vite="import path from 'node:path';\n"+vite;
-    // Remove any previous singleton V2/V3 resolve injection before applying one valid block.
-    vite=vite.replace(/\\n?\\s*\/\\/ LingoFlow singleton V2[\\s\\S]*?\\n\\s*},\\n(?=\\s*(?:plugins|server|build|define|optimizeDeps|esbuild|base|css|preview|test|assetsInclude|publicDir|root|resolve)\\s*:)/g,'\\n');
-    const resolveBlock=`resolve: {
-    // LingoFlow singleton V3
-    dedupe: ['react','react-dom'],
-    alias: [
-      { find: /^react$/, replacement: path.resolve(process.cwd(),'node_modules/react') },
-      { find: /^react\\/(.*)$/, replacement: path.resolve(process.cwd(),'node_modules/react') + '/$1' },
-      { find: /^react-dom$/, replacement: path.resolve(process.cwd(),'node_modules/react-dom') },
-      { find: /^react-dom\\/(.*)$/, replacement: path.resolve(process.cwd(),'node_modules/react-dom') + '/$1' }
-    ],
-  },`;
-    // Replace a top-level resolve object only when it can be located safely.
-    const resolveMatch=/\\n\\s*resolve\\s*:\\s*\\{[\\s\\S]*?\\n\\s*\\},(?=\\s*(?:plugins|server|build|define|optimizeDeps|esbuild|base|css|preview|test|assetsInclude|publicDir|root)\\s*:)/m.exec(vite);
-    if(resolveMatch){
-      vite=vite.slice(0,resolveMatch.index)+'\n  '+resolveBlock+','+vite.slice(resolveMatch.index+resolveMatch[0].length);
-    } else if(!vite.includes('LingoFlow singleton V3')){
-      const marker=/export default defineConfig\\(\\{/.exec(vite);
-      if(!marker) throw new Error('React singleton QA: defineConfig anchor missing');
-      vite=vite.slice(0,marker.index+marker[0].length)+'\n  '+resolveBlock+','+vite.slice(marker.index+marker[0].length);
-    }
-    write(vitePath,vite);
-    // Parse the config immediately so Render fails here with a precise diagnostic, never later.
-    try {
-      const { transform } = await import('esbuild');
-      await transform(vite,{loader:'ts',format:'esm',logLevel:'silent'});
-    } catch (error) {
-      throw new Error('React singleton QA: vite.config.ts syntax invalid after normalization: '+error.message);
-    }
-  }
   for(const lock of ['package-lock.json','npm-shrinkwrap.json']){
     const p=path.join(root,lock);
     if(fs.existsSync(p))fs.unlinkSync(p);
   }
-  console.log('FINAL RENDER REACT SINGLETON V3 PASSED');
+  console.log('FINAL RENDER REACT SINGLETON V4 PASSED');
 }

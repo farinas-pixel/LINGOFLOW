@@ -186,13 +186,6 @@ console.log('LingoFlow clean Solar UX hardening applied');
   solar = solar.split('languageLabelsRef').join('');
   write(solarPath, solar);
 }
-  // Keep the focus card intentional: only a deliberate tap/selection opens the action card.
-  solar = solar.replace('{(selectedPlanet || hoveredLanguage) && (', '{selectedPlanet && (');
-  solar = solar.replace('(selectedPlanet || hoveredLanguage).name', 'selectedPlanet.name');
-  solar = solar.replace('(selectedPlanet || hoveredLanguage).nativeName', 'selectedPlanet.nativeName');
-  solar = solar.replace('(selectedPlanet || hoveredLanguage).family', 'selectedPlanet.family');
-  solar = solar.replace('(selectedPlanet || hoveredLanguage).script', 'selectedPlanet.script');
-  solar = solar.replace('(selectedPlanet || hoveredLanguage).code', 'selectedPlanet.code');
   write(solarPath, solar);
 }
 console.log('Final deterministic Solar normalization applied');

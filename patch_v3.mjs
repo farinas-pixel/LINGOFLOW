@@ -260,6 +260,11 @@ console.log('LingoFlow Product Design System v2 applied');
     const anchor = solar.match(/const\\s+catalogPointsRef\\s*=\\s*useRef[^;]+;/);
     if (anchor) solar = solar.replace(anchor[0], anchor[0] + "\\n  const worldLabelCanvasRef = useRef<HTMLCanvasElement | null>(null);");
   }
+  // Final literal cleanup: no legacy CSS2D symbols survive in generated Solar source.
+  solar = solar.split('CSS2DRenderer').join('');
+  solar = solar.split('CSS2DObject').join('');
+  solar = solar.split('labelRendererRef').join('');
+  solar = solar.split('languageLabelsRef').join('');
   // Keep the focus card intentional: only a deliberate tap/selection opens the action card.
   solar = solar.replace('{(selectedPlanet || hoveredLanguage) && (', '{selectedPlanet && (');
   solar = solar.replace('(selectedPlanet || hoveredLanguage).name', 'selectedPlanet.name');

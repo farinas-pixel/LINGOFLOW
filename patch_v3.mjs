@@ -471,67 +471,40 @@ console.log('Final Solar product redesign applied');
 }
 
 
-// REAL ORBITAL MOTION — planets travel around the language core
+// REAL ORBITAL MOTION — integrated into the existing Three.js frame loop
 {
   const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
   let solar = read(solarPath);
-
-  if (!solar.includes('REAL ORBITAL MOTION')) {
-    const anchor = '  return (';
-    const at = solar.indexOf(anchor);
-    if (at < 0) throw new Error('Solar return anchor missing for orbital motion');
-
-    const motion = `
-  // REAL ORBITAL MOTION
-  useEffect(() => {
-    let frame = 0;
-    const startedAt = performance.now();
-
-    const animateLanguageOrbits = (now: number) => {
-      const elapsed = now - startedAt;
-
-      planetsRef.current.forEach((planet) => {
-        const language = planet.userData.language as LanguagePlanetData | undefined;
-        const radius = Number(planet.userData.radius) || Number(language?.orbitRadius) || 150;
-        const baseAngle = Number(planet.userData.angle) || Number(language?.initialAngle) || 0;
-        const speed = 0.000055 / Math.sqrt(Math.max(1, radius / 150));
-        const angle = baseAngle + elapsed * speed;
-        const y = (Number(language?.orbitIndex) - 2.5) * 8;
-        planet.position.set(Math.cos(angle) * radius, y, Math.sin(angle) * radius);
-        planet.rotation.y += 0.004;
-
-        const selected = selectedPlanet?.code === language?.code;
-        const pulse = selected ? 1 + Math.sin(elapsed * 0.006) * 0.13 : 1;
-        const baseScale = selected ? 1.18 : 1;
-        planet.scale.setScalar(baseScale * pulse);
-        const material = planet.material as THREE.MeshStandardMaterial;
-        material.emissiveIntensity = selected ? 0.72 + Math.sin(elapsed * 0.005) * 0.12 : 0.32;
-      });
-
-      const catalogPoints = catalogPointsRef.current;
-      if (catalogPoints) {
-        catalogPoints.rotation.y = elapsed * 0.000018;
-        const catalogMaterial = catalogPoints.material as THREE.PointsMaterial;
-        catalogMaterial.opacity = 0.68 + Math.sin(elapsed * 0.0018) * 0.04;
-      }
-
-      frame = requestAnimationFrame(animateLanguageOrbits);
-    };
-
-    frame = requestAnimationFrame(animateLanguageOrbits);
-    return () => cancelAnimationFrame(frame);
-  }, [selectedPlanet]);
-`;
-
-    solar = solar.slice(0, at) + motion + '\n' + solar.slice(at);
-    write(solarPath, solar);
-  }
-
+  const riskyHook = /\n\s*\/\/ REAL ORBITAL MOTION[\s\S]*?\n\s*\}, \[selectedPlanet\]\);\n/;
+  solar = solar.replace(riskyHook, '\n');
+  const renderAnchor = '      composer.render(dt);';
+  const motion = [
+    '      // REAL ORBITAL MOTION — no React hooks in the animation path',
+    '      const orbitElapsed = performance.now();',
+    '      planetsRef.current.forEach((planet) => {',
+    '        const language = planet.userData.language as LanguagePlanetData | undefined;',
+    '        const radius = Number(planet.userData.radius) || Number(language?.orbitRadius) || 150;',
+    '        const baseAngle = Number(planet.userData.angle) || Number(language?.initialAngle) || 0;',
+    '        const speed = 0.000055 / Math.sqrt(Math.max(1, radius / 150));',
+    '        const angle = baseAngle + orbitElapsed * speed;',
+    '        const y = (Number(language?.orbitIndex) - 2.5) * 8;',
+    '        planet.position.set(Math.cos(angle) * radius, y, Math.sin(angle) * radius);',
+    '        planet.rotation.y += 0.004;',
+    '        const selected = selectedPlanet?.code === language?.code;',
+    '        const pulse = selected ? 1 + Math.sin(orbitElapsed * 0.006) * 0.13 : 1;',
+    '        planet.scale.setScalar((selected ? 1.18 : 1) * pulse);',
+    '        const material = planet.material as THREE.MeshStandardMaterial;',
+    '        material.emissiveIntensity = selected ? 0.72 + Math.sin(orbitElapsed * 0.005) * 0.12 : 0.32;',
+    '      });',
+    '      const animatedCatalog = catalogPointsRef.current;',
+    '      if (animatedCatalog) animatedCatalog.rotation.y = orbitElapsed * 0.000018;',
+  ].join('\\n');
+  if (!solar.includes(renderAnchor)) throw new Error('Existing Three.js render anchor missing');
+  if (!solar.includes('REAL ORBITAL MOTION — no React hooks in the animation path')) solar = solar.replace(renderAnchor, motion + '\\n' + renderAnchor);
+  write(solarPath, solar);
   const cssPath = 'src/index.css';
   let css = read(cssPath);
-  if (!css.includes('.lingoflow-orbit-active')) {
-    css += '\n.lingoflow-orbit-active{filter:drop-shadow(0 0 18px rgba(103,232,249,.45))}\n';
-  }
+  if (!css.includes('.lingoflow-orbit-active')) css += '\\n.lingoflow-orbit-active{filter:drop-shadow(0 0 18px rgba(103,232,249,.45))}\\n';
   write(cssPath, css);
 }
 console.log('Real orbital motion applied');

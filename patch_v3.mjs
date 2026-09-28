@@ -314,7 +314,7 @@ console.log('Vite config compatibility cleanup applied');
   let solar = read(solarPath);
   const riskyHook = /\n\s*\/\/ REAL ORBITAL MOTION[\s\S]*?\n\s*\}, \[selectedPlanet\]\);\n/;
   solar = solar.replace(riskyHook, '\n');
-  const anchors = ['requestAnimationFrame(animate);','requestAnimationFrame(loop);','requestAnimationFrame(render);'];
+  const anchors = ['raf = requestAnimationFrame(animate);','requestAnimationFrame(loop);','requestAnimationFrame(render);'];
   const motion = [
     '      // REAL ORBITAL MOTION — no React hooks in the animation path',
     '      const orbitElapsed = performance.now();',
@@ -333,7 +333,7 @@ console.log('Vite config compatibility cleanup applied');
     '      });',
     '      const animatedCatalog = catalogPointsRef.current;',
     '      if (animatedCatalog) animatedCatalog.rotation.y = orbitElapsed * 0.000018;',
-  ].join('\\n');
+  ].join('\\n') + '\\n      raf = requestAnimationFrame(animate);';
   const anchor = anchors.find((item) => solar.includes(item));
   if (!anchor) throw new Error('Existing Three.js RAF anchor missing');
   if (!solar.includes('REAL ORBITAL MOTION — no React hooks in the animation path')) solar = solar.replace(anchor, motion + '\\n' + anchor);
@@ -530,5 +530,5 @@ console.log('LingoFlow Universe orbital hero applied');
   }
   if (!finalSolar.includes('const worldLabelCanvas = document.createElement')) throw new Error('Solar runtime normalization failed: canvas label layer missing');
   console.log('Solar runtime normalization passed: canvas labels are local, legacy CSS2D/ref layers removed.');
-  console.log('SOLAR_DEBUG_382_396\\n' + read(solarPath).split(String.fromCharCode(10)).slice(381,396).map((line, index) => (index + 382) + ': ' + line).join(String.fromCharCode(10)));
+
 }

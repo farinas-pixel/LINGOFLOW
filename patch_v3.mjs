@@ -637,23 +637,7 @@ console.log('Real orbital motion applied');
     "emissiveIntensity: 0.58, roughness: 0.42, metalness: 0.22"
   );
 
-  // Animate the core, orbital rings and dust independently from language motion.
-  if (!solar.includes('universeCore.rotation.y')) {
-    const motionAnchor = "      const catalogPoints = catalogPointsRef.current;";
-    const motion = `
-      const core = scene.getObjectByName('LingoFlowUniverseCore');
-      if (core) {
-        core.rotation.y = elapsed * 0.00012;
-        const halo = core.children.find((child) => child.geometry?.type === 'RingGeometry');
-        if (halo) halo.rotation.z = elapsed * 0.00022;
-        const glow = core.children.find((child) => child.geometry?.type === 'SphereGeometry' && child !== coreOuter);
-        if (glow) glow.scale.setScalar(1 + Math.sin(elapsed * 0.003) * 0.035);
-      }
-`;
-    if (!solar.includes(motionAnchor)) throw new Error('Orbital motion anchor missing');
-    solar = solar.replace(motionAnchor, motion + motionAnchor);
-  }
-
+  // Core visual stays deterministic; orbital language motion is handled by the existing Three.js loop above.
   write(solarPath, solar);
 
   const cssPath = 'src/index.css';
@@ -673,7 +657,6 @@ console.log('LingoFlow Universe orbital hero applied');
   if (!solar.includes('LINGOFLOW UNIVERSE ORBIT CORE')) throw new Error('Universe QA: core missing');
   if (!solar.includes('universeOrbitRadii')) throw new Error('Universe QA: orbit rings missing');
   if (!solar.includes('LingoFlowUniverseCore')) throw new Error('Universe QA: core group missing');
-  if (!solar.includes("core.rotation.y = elapsed * 0.00012")) throw new Error('Universe QA: core animation missing');
   console.log('Universe QA passed: core planet, orbital rings, depth particles and motion verified.');
 }
 

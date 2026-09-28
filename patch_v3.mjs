@@ -308,60 +308,6 @@ console.log('Vite config compatibility cleanup applied');
 }
 
 
-// FINAL SOLAR PRODUCT REDESIGN
-{
-  const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
-  let solar = read(solarPath);
-  if (!solar.includes('solar-product-hero')) {
-    const returnAt = solar.indexOf('return (');
-    const rootAt = returnAt >= 0 ? solar.indexOf('<div', returnAt) : -1;
-    if (rootAt >= 0) {
-      const hero = `
-      <div className="solar-product-hero pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-4 p-4 sm:p-5">
-        <div className="max-w-[min(520px,72%)]">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/15 bg-slate-950/55 px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.24em] text-cyan-200 backdrop-blur-xl"><span className="h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,.9)]"></span>Language Universe</div>
-          <h2 className="mt-3 text-xl font-semibold tracking-tight text-white sm:text-2xl">Explore how the world speaks.</h2>
-          <p className="mt-1 max-w-lg text-[11px] leading-relaxed text-slate-400 sm:text-xs">Discover a language, see its native script and context, then move directly into translation.</p>
-        </div>
-        <div className="hidden rounded-2xl border border-white/8 bg-slate-950/45 px-3 py-2 text-right backdrop-blur-xl sm:block"><div className="text-[9px] uppercase tracking-[0.2em] text-slate-500">Live catalog</div><div className="mt-0.5 text-sm font-semibold text-slate-200">{catalogCount.toLocaleString()} languages</div></div>
-      </div>`;
-      const rootOpenEnd = solar.indexOf('>', rootAt);
-      if (rootOpenEnd >= 0) solar = solar.slice(0, rootOpenEnd + 1) + '\n' + hero + solar.slice(rootOpenEnd + 1);
-    }
-  }
-  if (!solar.includes('solar-interaction-rail')) {
-    solar = solar.replace('Drag to rotate · pinch/scroll to zoom · tap a language', 'Drag to orbit · scroll to zoom · tap to focus');
-    const rail = `
-      <div className="solar-interaction-rail pointer-events-none absolute inset-x-0 bottom-0 z-20 flex items-end justify-between gap-3 p-4 sm:p-5">
-        <div className="rounded-xl border border-white/8 bg-slate-950/55 px-3 py-2 text-[10px] text-slate-400 backdrop-blur-xl"><span className="text-slate-200">Drag</span> orbit <span className="mx-1 text-slate-600">·</span><span className="text-slate-200">Scroll</span> zoom <span className="mx-1 text-slate-600">·</span><span className="text-slate-200">Tap</span> focus</div>
-        <div className="hidden rounded-xl border border-white/8 bg-slate-950/55 px-3 py-2 text-[10px] text-slate-500 backdrop-blur-xl sm:block">Supported languages glow brighter</div>
-      </div>`;
-    const close = solar.lastIndexOf('\n    </div>\n  );');
-    if (close >= 0) solar = solar.slice(0, close) + '\n' + rail + solar.slice(close);
-  }
-  solar = solar.split('border border-white/10 bg-slate-950/85 p-4 shadow-2xl backdrop-blur-xl').join('border border-cyan-200/15 bg-slate-950/90 p-4 shadow-[0_20px_70px_rgba(0,0,0,.45)] backdrop-blur-2xl');
-  solar = solar.split('mt-1 text-xl font-semibold text-white').join('mt-1 text-2xl font-semibold tracking-tight text-white');
-  solar = solar.split('mt-3 w-full rounded-xl bg-white px-3 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-50').join('mt-4 w-full rounded-xl bg-white px-3 py-2.5 text-sm font-semibold text-slate-950 shadow-[0_8px_30px_rgba(255,255,255,.08)] transition hover:bg-cyan-50');
-  write(solarPath, solar);
-
-  const cssPath = 'src/index.css';
-  let css = read(cssPath);
-  if (!css.includes('.solar-product-hero{')) css += '\n.solar-product-hero{animation:solarHeroIn .7s ease-out both}.solar-interaction-rail{animation:solarRailIn .8s .08s ease-out both}@keyframes solarHeroIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}@keyframes solarRailIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}\n';
-  write(cssPath, css);
-}
-console.log('Final Solar product redesign applied');
-
-{
-  const solar = read('src/components/solar/LanguageSolarSystem.tsx');
-  const css = read('src/index.css');
-  for (const required of ['solar-product-hero','solar-interaction-rail','worldLabelCanvasRef','selectedPlanet']) {
-    if (!solar.includes(required) && !css.includes(required)) throw new Error('Solar redesign QA: missing ' + required);
-  }
-  if (solar.includes('(selectedPlanet || hoveredLanguage)')) throw new Error('Solar redesign QA: hover-driven focus remains');
-  console.log('Solar redesign QA passed.');
-}
-
-
 // REAL ORBITAL MOTION — integrated into the existing Three.js RAF loop
 {
   const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';

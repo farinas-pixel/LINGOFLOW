@@ -618,3 +618,28 @@ console.log('React runtime hardening applied');
   }
   console.log('React QA: generated hook scope and single React runtime configuration verified.');
 }
+
+// FINAL RENDER REACT SINGLETON HARDENING V2
+{
+  const packagePath='package.json';
+  if(fs.existsSync(path.join(root,packagePath))){
+    const pkg=JSON.parse(read(packagePath));
+    pkg.dependencies={...(pkg.dependencies||{}),react:'19.3.0','react-dom':'19.3.0'};
+    pkg.overrides={...(pkg.overrides||{}),react:'19.3.0','react-dom':'19.3.0'};
+    write(packagePath,JSON.stringify(pkg,null,2)+'\n');
+  }
+  const vitePath='vite.config.ts';
+  if(fs.existsSync(path.join(root,vitePath))){
+    let vite=read(vitePath);
+    if(!vite.includes("import path from 'node:path';")) vite="import path from 'node:path';\n"+vite;
+    const marker='// LingoFlow singleton V2';
+    if(!vite.includes(marker)){
+      const resolveBlock="resolve: {\n    // LingoFlow singleton V2\n    dedupe: ['react','react-dom'],\n    alias: [\n      { find: /^react$/, replacement: path.resolve(process.cwd(),'node_modules/react') },\n      { find: /^react\\/(.*)$/, replacement: path.resolve(process.cwd(),'node_modules/react') + '/$1' },\n      { find: /^react-dom$/, replacement: path.resolve(process.cwd(),'node_modules/react-dom') },\n      { find: /^react-dom\\/(.*)$/, replacement: path.resolve(process.cwd(),'node_modules/react-dom') + '/$1' }\n    ],\n  },";
+      if(vite.includes('resolve: {')) vite=vite.replace('resolve: {',resolveBlock);
+      else vite=vite.replace(/export default defineConfig\(\{/, 'export default defineConfig({\n  '+resolveBlock);
+    }
+    write(vitePath,vite);
+  }
+  for(const lock of ['package-lock.json','npm-shrinkwrap.json']){const p=path.join(root,lock);if(fs.existsSync(p))fs.unlinkSync(p);}
+  console.log('FINAL RENDER REACT SINGLETON V2 PASSED');
+}

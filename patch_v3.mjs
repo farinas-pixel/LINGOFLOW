@@ -332,6 +332,10 @@ console.log('Final deterministic Solar normalization applied');
   app = app.split("{activeView === 'services' && <ServiceRegistryView />}").join('');
   write(appPath, app);
 
+  // Runtime safety: the canvas ref must be declared even when the earlier typed-ref patch did not match.
+  if (!solar.includes('const worldLabelCanvasRef = useRef<HTMLCanvasElement | null>(null);')) {
+    solar = solar.replace('const catalogPointsRef = useRef(null);', 'const catalogPointsRef = useRef(null);\n  const worldLabelCanvasRef = useRef<HTMLCanvasElement | null>(null);');
+  }
   const finalSolar = read(solarPath);
   const finalApp = read(appPath);
   for (const symbol of ['worldLabelCanvasRef', 'catalogPointsRef', 'selectedPlanet']) {

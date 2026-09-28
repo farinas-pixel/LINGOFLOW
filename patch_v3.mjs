@@ -284,67 +284,72 @@ console.log('LingoFlow Product Design System v2 applied');
 console.log('Final deterministic Solar normalization applied');
 
 
+
 // FINAL PRODUCTION NORMALIZER + STATIC QA
-// This block runs after the source archive is extracted. It is intentionally deterministic:
-// one Solar label renderer, one App shell, and explicit compile/runtime guards.
 {
   const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
   let solar = read(solarPath);
 
-  // The product uses one canvas label layer. Remove any legacy CSS2D layer that older
-  // patch generations may have reintroduced.
-  solar = solar.replace(/\\n?import \\{ CSS2DRenderer, CSS2DObject \} from 'three\\/addons\\/renderers\\/CSS2DRenderer\\.js';/g, '');
-  solar = solar.replace(/\\n?\\s*const labelRendererRef = useRef<[^;]+;/g, '');
-  solar = solar.replace(/\\n?\\s*const languageLabelsRef = useRef<[^;]+;/g, '');
-  solar = solar.replace(/\\n?\\s*labelRendererRef\\.current = labelRenderer;?/g, '');
-  solar = solar.replace(/\\n?\\s*const labelRenderer = new CSS2DRenderer\\(\\);[\\s\\S]*?mount\\.appendChild\\(labelRenderer\\.domElement\\);/g, '');
-  solar = solar.replace(/\\n?\\s*const makeLabel = \\(lang: LanguagePlanetData\\) => \\{[\\s\\S]*?languageLabelsRef\\.current\\.push\\(label\\); \\}\\);/g, '');
-  solar = solar.replace(/\\n?\\s*languageLabelsRef\\.current\\.forEach\\(\\(label\\) => \\{[\\s\\S]*?\\}\\);/g, '');
-  solar = solar.replace(/\\n?\\s*labelRenderer\\.render\\(scene, camera\\);/g, '');
-  solar = solar.replace(/\\s*labelRenderer\\.setSize\\(width, height\\);/g, '');
-  solar = solar.replace(/\\s*labelRenderer\\.domElement\\.remove\\(\\);/g, '');
-  solar = solar.replace(/\\s*languageLabelsRef\\.current = \\[\\]; labelRendererRef\\.current = null;/g, '');
+  // Remove legacy CSS2D layer using literal replacements so this guard itself cannot
+  // introduce a regex-parser failure.
+  const legacySnippets = [
+    "import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';",
+    "import { CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js';"
+  ];
+  for (const snippet of legacySnippets) solar = solar.split(snippet).join('');
+  solar = solar.split("const labelRendererRef = useRef<CSS2DRenderer | null>(null);").join('');
+  solar = solar.split("const languageLabelsRef = useRef<CSS2DObject[]>([]);").join('');
+  solar = solar.split("labelRendererRef.current = labelRenderer;").join('');
+  solar = solar.split("labelRenderer.render(scene, camera);").join('');
+  solar = solar.split("labelRenderer.domElement.remove();").join('');
+  solar = solar.split("languageLabelsRef.current = []; labelRendererRef.current = null;").join('');
 
-  // Canvas ref is mandatory because cleanup and resize code may reference it.
   if (!solar.includes('const worldLabelCanvasRef')) {
-    const anchor = solar.match(/const\\s+catalogPointsRef\\s*=\\s*useRef[^;]+;/);
-    if (anchor) solar = solar.replace(anchor[0], anchor[0] + "\\n  const worldLabelCanvasRef = useRef<HTMLCanvasElement | null>(null);");
+    const anchor = 'const catalogPointsRef = useRef';
+    const at = solar.indexOf(anchor);
+    const end = solar.indexOf(';', at);
+    if (at >= 0 && end >= 0) {
+      const declaration = solar.slice(at, end + 1);
+      solar = solar.replace(declaration, declaration + "\n  const worldLabelCanvasRef = useRef<HTMLCanvasElement | null>(null);");
+    }
   }
 
-  // Keep the product action card selection-driven rather than hover-driven.
-  solar = solar.replace(/\\{\\(selectedPlanet \\|\\| hoveredLanguage\\) && \(/g, '{selectedPlanet && (');
-  solar = solar.replace(/\\(selectedPlanet \\|\\| hoveredLanguage\\)\\.(name|nativeName|family|script|code)/g, 'selectedPlanet.$1');
+  // Selection is the intentional product action; hover only previews.
+  solar = solar.split('{(selectedPlanet || hoveredLanguage) && (').join('{selectedPlanet && (');
+  solar = solar.split('(selectedPlanet || hoveredLanguage).name').join('selectedPlanet.name');
+  solar = solar.split('(selectedPlanet || hoveredLanguage).nativeName').join('selectedPlanet.nativeName');
+  solar = solar.split('(selectedPlanet || hoveredLanguage).family').join('selectedPlanet.family');
+  solar = solar.split('(selectedPlanet || hoveredLanguage).script').join('selectedPlanet.script');
+  solar = solar.split('(selectedPlanet || hoveredLanguage).code').join('selectedPlanet.code');
 
   write(solarPath, solar);
 
   const appPath = 'src/App.tsx';
   let app = read(appPath);
-  app = app.replace(/import \\{ ArchitectureExplorer \\} from '[^']+';\\n/g, '');
-  app = app.replace(/import \\{ ServiceRegistryView \\} from '[^']+';\\n/g, '');
-  app = app.replace(/\\n\\s*\\{activeView === 'architecture' && <ArchitectureExplorer \/>\\}/g, '');
-  app = app.replace(/\\n\\s*\\{activeView === 'services' && <ServiceRegistryView \/>\\}/g, '');
+  app = app.split("import { ArchitectureExplorer } from './features/workspace/ArchitectureExplorer';\n").join('');
+  app = app.split("import { ServiceRegistryView } from './features/workspace/ServiceRegistryView';\n").join('');
+  app = app.split("{activeView === 'architecture' && <ArchitectureExplorer />}").join('');
+  app = app.split("{activeView === 'services' && <ServiceRegistryView />}").join('');
   write(appPath, app);
 
-  // Static product/engineering QA: fail the deployment instead of shipping a known
-  // undefined-reference or duplicate-renderer regression.
   const finalSolar = read(solarPath);
   const finalApp = read(appPath);
-  const requiredSolar = ['worldLabelCanvasRef', 'catalogPointsRef', 'selectedPlanet'];
-  for (const symbol of requiredSolar) {
+  for (const symbol of ['worldLabelCanvasRef', 'catalogPointsRef', 'selectedPlanet']) {
     if (!finalSolar.includes(symbol)) throw new Error('Production QA: Solar symbol missing: ' + symbol);
   }
-  if (finalSolar.includes('CSS2DRenderer') || finalSolar.includes('CSS2DObject') || finalSolar.includes('labelRendererRef') || finalSolar.includes('languageLabelsRef')) {
-    throw new Error('Production QA: legacy CSS2D label layer still present');
+  for (const legacy of ['CSS2DRenderer', 'CSS2DObject', 'labelRendererRef', 'languageLabelsRef']) {
+    if (finalSolar.includes(legacy)) throw new Error('Production QA: legacy Solar label layer still present: ' + legacy);
   }
-  if (/\\{\\(selectedPlanet \\|\\| hoveredLanguage\\) &&/.test(finalSolar)) {
+  if (finalSolar.includes('{(selectedPlanet || hoveredLanguage) && (')) {
     throw new Error('Production QA: hover-driven focus card still present');
   }
   if (finalApp.includes('ArchitectureExplorer') || finalApp.includes('ServiceRegistryView')) {
     throw new Error('Production QA: developer-only workspace screen leaked into App shell');
   }
+
   const server = read('server.ts');
   for (const endpoint of ['/api/health','/api/translate','/api/web-search','/api/semantic-mirror','/api/ocr-translate','/api/languages']) {
     if (!server.includes(endpoint)) throw new Error('Production QA: required backend endpoint missing: ' + endpoint);
   }
-  console.log('Production QA passed: Solar label layer, App shell, and required backend routes verified.');
+  console.log('Production QA passed: Solar, App shell, and required backend routes verified.');
 }

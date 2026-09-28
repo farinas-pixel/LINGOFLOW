@@ -183,7 +183,9 @@ console.log('LingoFlow clean Solar UX hardening applied');
   solar = solar.split('CSS2DRenderer').join('');
   solar = solar.split('CSS2DObject').join('');
   solar = solar.split('labelRendererRef').join('');
-  solar = solar.split('languageLabelsRef').join('');
+  solar = solar.split('languageLabelsRef').join('');\n  solar = solar.split("import { , } from 'three/addons/renderers/CSS2DRenderer.js';").join('');
+  solar = solar.split("import {  } from 'three/addons/renderers/CSS2DRenderer.js';").join('');
+
   // Keep the focus card intentional: only a deliberate tap/selection opens the action card.
   solar = solar.replace('{(selectedPlanet || hoveredLanguage) && (', '{selectedPlanet && (');
   solar = solar.replace('(selectedPlanet || hoveredLanguage).name', 'selectedPlanet.name');

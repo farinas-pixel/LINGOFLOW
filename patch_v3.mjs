@@ -485,19 +485,8 @@ console.log('Final Solar product redesign applied');
       const catalogPoints = catalogPointsRef.current;
       if (catalogPoints) {
         catalogPoints.rotation.y = elapsed * 0.000018;
-        const selectedCode = selectedPlanet?.code;
-        const languages = catalogPoints.userData.languages || [];
-        const colors = catalogPoints.geometry.getAttribute('color') as THREE.BufferAttribute | undefined;
-        if (colors) {
-          for (let i = 0; i < languages.length; i += 1) {
-            const selected = languages[i]?.code === selectedCode;
-            const boost = selected ? 1.9 : 1;
-            colors.setX(i, Math.min(1, colors.getX(i) * boost));
-            colors.setY(i, Math.min(1, colors.getY(i) * boost));
-            colors.setZ(i, Math.min(1, colors.getZ(i) * boost));
-          }
-          colors.needsUpdate = true;
-        }
+        const catalogMaterial = catalogPoints.material as THREE.PointsMaterial;
+        catalogMaterial.opacity = 0.68 + Math.sin(elapsed * 0.0018) * 0.04;
       }
 
       frame = requestAnimationFrame(animateLanguageOrbits);

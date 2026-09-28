@@ -585,8 +585,13 @@ console.log('Real orbital motion applied');
 
     const universeOrbitRadii = [105, 150, 205, 265, 330, 405];
     universeOrbitRadii.forEach((radius, index) => {
+      const ringGeometry = new THREE.BufferGeometry().setFromPoints(
+        new THREE.EllipseCurve(0, 0, radius, radius * (0.72 + index * 0.018), 0, Math.PI * 2, false, 0)
+          .getPoints(128)
+          .map((p) => new THREE.Vector3(p.x, 0, p.y))
+      );
       const ring = new THREE.LineLoop(
-        new THREE.EllipseCurve(0, 0, radius, radius * (0.72 + index * 0.018), 0, Math.PI * 2, false, 0).getPoints(128).map((p) => new THREE.Vector3(p.x, 0, p.y)),
+        ringGeometry,
         new THREE.LineBasicMaterial({
           color: index % 2 === 0 ? '#355cff' : '#8b5cf6',
           transparent: true,

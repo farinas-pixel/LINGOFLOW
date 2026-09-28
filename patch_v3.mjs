@@ -405,7 +405,8 @@ console.log('Final deterministic Solar normalization applied');
         </div>
         <div className="hidden rounded-2xl border border-white/8 bg-slate-950/45 px-3 py-2 text-right backdrop-blur-xl sm:block"><div className="text-[9px] uppercase tracking-[0.2em] text-slate-500">Live catalog</div><div className="mt-0.5 text-sm font-semibold text-slate-200">{catalogCount.toLocaleString()} languages</div></div>
       </div>`;
-      solar = solar.slice(0, rootAt) + hero + '\n' + solar.slice(rootAt);
+      const rootOpenEnd = solar.indexOf('>', rootAt);
+      if (rootOpenEnd >= 0) solar = solar.slice(0, rootOpenEnd + 1) + '\n' + hero + solar.slice(rootOpenEnd + 1);
     }
   }
   if (!solar.includes('solar-interaction-rail')) {

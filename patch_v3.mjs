@@ -282,3 +282,69 @@ console.log('LingoFlow Product Design System v2 applied');
   write(solarPath, solar);
 }
 console.log('Final deterministic Solar normalization applied');
+
+
+// FINAL PRODUCTION NORMALIZER + STATIC QA
+// This block runs after the source archive is extracted. It is intentionally deterministic:
+// one Solar label renderer, one App shell, and explicit compile/runtime guards.
+{
+  const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
+  let solar = read(solarPath);
+
+  // The product uses one canvas label layer. Remove any legacy CSS2D layer that older
+  // patch generations may have reintroduced.
+  solar = solar.replace(/\\n?import \\{ CSS2DRenderer, CSS2DObject \} from 'three\\/addons\\/renderers\\/CSS2DRenderer\\.js';/g, '');
+  solar = solar.replace(/\\n?\\s*const labelRendererRef = useRef<[^;]+;/g, '');
+  solar = solar.replace(/\\n?\\s*const languageLabelsRef = useRef<[^;]+;/g, '');
+  solar = solar.replace(/\\n?\\s*labelRendererRef\\.current = labelRenderer;?/g, '');
+  solar = solar.replace(/\\n?\\s*const labelRenderer = new CSS2DRenderer\\(\\);[\\s\\S]*?mount\\.appendChild\\(labelRenderer\\.domElement\\);/g, '');
+  solar = solar.replace(/\\n?\\s*const makeLabel = \\(lang: LanguagePlanetData\\) => \\{[\\s\\S]*?languageLabelsRef\\.current\\.push\\(label\\); \\}\\);/g, '');
+  solar = solar.replace(/\\n?\\s*languageLabelsRef\\.current\\.forEach\\(\\(label\\) => \\{[\\s\\S]*?\\}\\);/g, '');
+  solar = solar.replace(/\\n?\\s*labelRenderer\\.render\\(scene, camera\\);/g, '');
+  solar = solar.replace(/\\s*labelRenderer\\.setSize\\(width, height\\);/g, '');
+  solar = solar.replace(/\\s*labelRenderer\\.domElement\\.remove\\(\\);/g, '');
+  solar = solar.replace(/\\s*languageLabelsRef\\.current = \\[\\]; labelRendererRef\\.current = null;/g, '');
+
+  // Canvas ref is mandatory because cleanup and resize code may reference it.
+  if (!solar.includes('const worldLabelCanvasRef')) {
+    const anchor = solar.match(/const\\s+catalogPointsRef\\s*=\\s*useRef[^;]+;/);
+    if (anchor) solar = solar.replace(anchor[0], anchor[0] + "\\n  const worldLabelCanvasRef = useRef<HTMLCanvasElement | null>(null);");
+  }
+
+  // Keep the product action card selection-driven rather than hover-driven.
+  solar = solar.replace(/\\{\\(selectedPlanet \\|\\| hoveredLanguage\\) && \(/g, '{selectedPlanet && (');
+  solar = solar.replace(/\\(selectedPlanet \\|\\| hoveredLanguage\\)\\.(name|nativeName|family|script|code)/g, 'selectedPlanet.$1');
+
+  write(solarPath, solar);
+
+  const appPath = 'src/App.tsx';
+  let app = read(appPath);
+  app = app.replace(/import \\{ ArchitectureExplorer \\} from '[^']+';\\n/g, '');
+  app = app.replace(/import \\{ ServiceRegistryView \\} from '[^']+';\\n/g, '');
+  app = app.replace(/\\n\\s*\\{activeView === 'architecture' && <ArchitectureExplorer \/>\\}/g, '');
+  app = app.replace(/\\n\\s*\\{activeView === 'services' && <ServiceRegistryView \/>\\}/g, '');
+  write(appPath, app);
+
+  // Static product/engineering QA: fail the deployment instead of shipping a known
+  // undefined-reference or duplicate-renderer regression.
+  const finalSolar = read(solarPath);
+  const finalApp = read(appPath);
+  const requiredSolar = ['worldLabelCanvasRef', 'catalogPointsRef', 'selectedPlanet'];
+  for (const symbol of requiredSolar) {
+    if (!finalSolar.includes(symbol)) throw new Error('Production QA: Solar symbol missing: ' + symbol);
+  }
+  if (finalSolar.includes('CSS2DRenderer') || finalSolar.includes('CSS2DObject') || finalSolar.includes('labelRendererRef') || finalSolar.includes('languageLabelsRef')) {
+    throw new Error('Production QA: legacy CSS2D label layer still present');
+  }
+  if (/\\{\\(selectedPlanet \\|\\| hoveredLanguage\\) &&/.test(finalSolar)) {
+    throw new Error('Production QA: hover-driven focus card still present');
+  }
+  if (finalApp.includes('ArchitectureExplorer') || finalApp.includes('ServiceRegistryView')) {
+    throw new Error('Production QA: developer-only workspace screen leaked into App shell');
+  }
+  const server = read('server.ts');
+  for (const endpoint of ['/api/health','/api/translate','/api/web-search','/api/semantic-mirror','/api/ocr-translate','/api/languages']) {
+    if (!server.includes(endpoint)) throw new Error('Production QA: required backend endpoint missing: ' + endpoint);
+  }
+  console.log('Production QA passed: Solar label layer, App shell, and required backend routes verified.');
+}

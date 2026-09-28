@@ -347,6 +347,35 @@ console.log('Final deterministic Solar normalization applied');
     throw new Error('Production QA: developer-only workspace screen leaked into App shell');
   }
 
+  const requiredFeatureFiles = [
+    'src/features/home/HomeView.tsx',
+    'src/features/translator/TranslationCockpit.tsx',
+    'src/features/search/WebSearchView.tsx',
+    'src/features/semantic/SemanticMirrorView.tsx',
+    'src/features/conversation/ConversationMode.tsx',
+    'src/features/media/MediaTranslationView.tsx',
+    'src/features/history/HistoryAndFavoritesView.tsx',
+    'src/features/languages/LanguageExplorerView.tsx',
+    'src/features/vault/TranslationVaultView.tsx',
+    'src/features/settings/EnhancedSettingsView.tsx',
+  ];
+  for (const file of requiredFeatureFiles) {
+    if (!fs.existsSync(path.join(root, file))) throw new Error('Production QA: required feature file missing: ' + file);
+  }
+
+  const routeSurface = ['home','search','translator','semantic','conversation','media','history','languages','vault','settings'];
+  for (const route of routeSurface) {
+    if (!finalApp.includes("'" + route + "'")) throw new Error('Production QA: App route missing: ' + route);
+  }
+
+  const homeSource = read('src/features/home/HomeView.tsx');
+  const sidebarSource = read('src/components/layout/Sidebar.tsx');
+  for (const misleading of ['zero-latency execution','100%','100 %']) {
+    if (homeSource.includes(misleading) || sidebarSource.includes(misleading)) {
+      throw new Error('Production QA: misleading product claim remains: ' + misleading);
+    }
+  }
+
   const server = read('server.ts');
   for (const endpoint of ['/api/health','/api/translate','/api/web-search','/api/semantic-mirror','/api/ocr-translate','/api/languages']) {
     if (!server.includes(endpoint)) throw new Error('Production QA: required backend endpoint missing: ' + endpoint);

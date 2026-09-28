@@ -443,3 +443,89 @@ console.log('Final Solar product redesign applied');
   if (solar.includes('(selectedPlanet || hoveredLanguage)')) throw new Error('Solar redesign QA: hover-driven focus remains');
   console.log('Solar redesign QA passed.');
 }
+
+
+// REAL ORBITAL MOTION — planets travel around the language core
+{
+  const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
+  let solar = read(solarPath);
+
+  if (!solar.includes('REAL ORBITAL MOTION')) {
+    const anchor = '  return (';
+    const at = solar.indexOf(anchor);
+    if (at < 0) throw new Error('Solar return anchor missing for orbital motion');
+
+    const motion = `
+  // REAL ORBITAL MOTION
+  useEffect(() => {
+    let frame = 0;
+    const startedAt = performance.now();
+
+    const animateLanguageOrbits = (now: number) => {
+      const elapsed = now - startedAt;
+
+      planetsRef.current.forEach((planet) => {
+        const language = planet.userData.language as LanguagePlanetData | undefined;
+        const radius = Number(planet.userData.radius) || Number(language?.orbitRadius) || 150;
+        const baseAngle = Number(planet.userData.angle) || Number(language?.initialAngle) || 0;
+        const speed = 0.000055 / Math.sqrt(Math.max(1, radius / 150));
+        const angle = baseAngle + elapsed * speed;
+        const y = (Number(language?.orbitIndex) - 2.5) * 8;
+        planet.position.set(Math.cos(angle) * radius, y, Math.sin(angle) * radius);
+        planet.rotation.y += 0.004;
+
+        const selected = selectedPlanet?.code === language?.code;
+        const pulse = selected ? 1 + Math.sin(elapsed * 0.006) * 0.13 : 1;
+        const baseScale = selected ? 1.18 : 1;
+        planet.scale.setScalar(baseScale * pulse);
+        const material = planet.material as THREE.MeshStandardMaterial;
+        material.emissiveIntensity = selected ? 0.72 + Math.sin(elapsed * 0.005) * 0.12 : 0.32;
+      });
+
+      const catalogPoints = catalogPointsRef.current;
+      if (catalogPoints) {
+        catalogPoints.rotation.y = elapsed * 0.000018;
+        const selectedCode = selectedPlanet?.code;
+        const languages = catalogPoints.userData.languages || [];
+        const colors = catalogPoints.geometry.getAttribute('color') as THREE.BufferAttribute | undefined;
+        if (colors) {
+          for (let i = 0; i < languages.length; i += 1) {
+            const selected = languages[i]?.code === selectedCode;
+            const boost = selected ? 1.9 : 1;
+            colors.setX(i, Math.min(1, colors.getX(i) * boost));
+            colors.setY(i, Math.min(1, colors.getY(i) * boost));
+            colors.setZ(i, Math.min(1, colors.getZ(i) * boost));
+          }
+          colors.needsUpdate = true;
+        }
+      }
+
+      frame = requestAnimationFrame(animateLanguageOrbits);
+    };
+
+    frame = requestAnimationFrame(animateLanguageOrbits);
+    return () => cancelAnimationFrame(frame);
+  }, [selectedPlanet]);
+`;
+
+    solar = solar.slice(0, at) + motion + '\n' + solar.slice(at);
+    write(solarPath, solar);
+  }
+
+  const cssPath = 'src/index.css';
+  let css = read(cssPath);
+  if (!css.includes('.lingoflow-orbit-active')) {
+    css += '\n.lingoflow-orbit-active{filter:drop-shadow(0 0 18px rgba(103,232,249,.45))}\n';
+  }
+  write(cssPath, css);
+}
+console.log('Real orbital motion applied');
+
+{
+  const solar = read('src/components/solar/LanguageSolarSystem.tsx');
+  if (!solar.includes('REAL ORBITAL MOTION')) throw new Error('Orbital motion QA failed: animation block missing');
+  if (!solar.includes('requestAnimationFrame(animateLanguageOrbits)')) throw new Error('Orbital motion QA failed: animation loop missing');
+  if (!solar.includes('planet.position.set(Math.cos(angle) * radius')) throw new Error('Orbital motion QA failed: planet trajectory missing');
+  if (!solar.includes('catalogPoints.rotation.y')) throw new Error('Orbital motion QA failed: world catalog motion missing');
+  console.log('Orbital motion QA passed: supported planets and world catalog move continuously around the core.');
+}

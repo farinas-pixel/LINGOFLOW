@@ -685,3 +685,38 @@ console.log('LingoFlow Universe orbital hero applied');
   if (!solar.includes("core.rotation.y = elapsed * 0.00012")) throw new Error('Universe QA: core animation missing');
   console.log('Universe QA passed: core planet, orbital rings, depth particles and motion verified.');
 }
+
+
+// FINAL SOLAR RUNTIME NORMALIZATION — one label renderer, zero fragile canvas refs
+{
+  const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
+  let solar = read(solarPath);
+
+  // Remove legacy CSS2D label architecture completely.
+  solar = solar.replace("import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';\n", '');
+  solar = solar.replace("  const labelRendererRef = useRef<CSS2DRenderer | null>(null);\n", '');
+  solar = solar.replace("  const languageLabelsRef = useRef<CSS2DObject[]>([]);\n", '');
+  solar = solar.replace("  const worldLabelCanvasRef = useRef<HTMLCanvasElement | null>(null);\n", '');
+  solar = solar.replace("    const labelRenderer = new CSS2DRenderer();\n    labelRenderer.setSize(1, 1);\n    labelRenderer.domElement.className = 'absolute inset-0 pointer-events-none overflow-hidden';\n    labelRenderer.domElement.setAttribute('aria-hidden', 'true');\n    mount.appendChild(labelRenderer.domElement);\n", '');
+  solar = solar.replace("    labelRendererRef.current = labelRenderer;\n", '');
+  solar = solar.replace("    worldLabelCanvasRef.current = worldLabelCanvas;\n", '');
+  solar = solar.replace(/\n\s*const makeLabel = \(lang: LanguagePlanetData\) => \{[\s\S]*?languageLabelsRef\.current\.push\(label\); \};\n\s*planets\.forEach\(\(planet\) => \{ const label = makeLabel\(planet\.userData\.language\); planet\.add\(label\); languageLabelsRef\.current\.push\(label\); \}\);/g, '');
+  solar = solar.replace(/\n\s*languageLabelsRef\.current\.forEach\(\(label\) => \{[\s\S]*?label\.classList\.toggle\('is-active', active\); \}\);/g, '');
+  solar = solar.replace("\n      labelRenderer.render(scene, camera);", '');
+  solar = solar.replace(" labelRenderer.setSize(width, height);", '');
+  solar = solar.replace(" labelRenderer.domElement.remove();", '');
+  solar = solar.replace(" worldLabelCanvasRef.current = null;", '');
+  solar = solar.replace(" languageLabelsRef.current = []; labelRendererRef.current = null;", '');
+
+  // If a stale ref declaration survived any earlier stage, remove it by line.
+  solar = solar.split('\n').filter(line => !line.includes('worldLabelCanvasRef')).join('\n');
+
+  write(solarPath, solar);
+
+  const finalSolar = read(solarPath);
+  for (const legacy of ['worldLabelCanvasRef','CSS2DRenderer','CSS2DObject','labelRendererRef','languageLabelsRef']) {
+    if (finalSolar.includes(legacy)) throw new Error('Solar runtime normalization failed: ' + legacy + ' remains');
+  }
+  if (!finalSolar.includes('const worldLabelCanvas = document.createElement')) throw new Error('Solar runtime normalization failed: canvas label layer missing');
+  console.log('Solar runtime normalization passed: canvas labels are local, legacy CSS2D/ref layers removed.');
+}

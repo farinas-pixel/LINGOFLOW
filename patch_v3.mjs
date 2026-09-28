@@ -28,4 +28,10 @@ for(const f of ['src/features/workspace/ArchitectureExplorer.tsx','src/features/
 for(const f of ['package-lock.json','npm-shrinkwrap.json']){const p=path.join(root,f);if(fs.existsSync(p))fs.unlinkSync(p);}
 const solar=read('src/components/solar/LanguageSolarSystem.tsx');if(!solar.includes("from 'three'")||!solar.includes('requestAnimationFrame(animate)')||!solar.includes('ORBIT_RADII'))throw new Error('V5 QA: canonical Solar System source incomplete');
 const finalVite=read('vite.config.ts');if(finalVite.includes('__dirname')||!finalVite.includes("dedupe: ['react', 'react-dom']"))throw new Error('V5 QA: Vite hardening incomplete');
+replace('src/App.tsx',"import { ArchitectureExplorer } from './features/workspace/ArchitectureExplorer';\n",'');
+replace('src/App.tsx',"import { ServiceRegistryView } from './features/workspace/ServiceRegistryView';\n",'');
+replace('src/App.tsx',"        {activeView === 'architecture' && <ArchitectureExplorer />}\n",'');
+replace('src/App.tsx',"        {activeView === 'services' && <ServiceRegistryView />}\n",'');
+replace('src/types/navigation.ts'," | 'architecture'",'');
+replace('src/types/navigation.ts'," | 'services'",'');
 console.log('LingoFlow V5 safe production patch applied');process.exit(0);

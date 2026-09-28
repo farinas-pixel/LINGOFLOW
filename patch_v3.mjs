@@ -532,3 +532,65 @@ console.log('LingoFlow Universe orbital hero applied');
   console.log('Solar runtime normalization passed: canvas labels are local, legacy CSS2D/ref layers removed.');
 
 }
+
+
+// React runtime hardening: prevent duplicate React instances and enforce one renderer resolution.
+{
+  const vitePath = 'vite.config.ts';
+  if (fs.existsSync(path.join(root, vitePath))) {
+    let vite = read(vitePath);
+    if (!vite.includes("dedupe: ['react', 'react-dom']")) {
+      if (vite.includes('resolve: {')) {
+        vite = vite.replace('resolve: {', "resolve: {\n    dedupe: ['react', 'react-dom'],");
+      } else if (vite.includes('plugins: [')) {
+        vite = vite.replace('plugins: [', "resolve: { dedupe: ['react', 'react-dom'] },\n  plugins: [");
+      } else {
+        vite = vite.replace(/export default defineConfig\(\{/, "export default defineConfig({\n  resolve: { dedupe: ['react', 'react-dom'] },");
+      }
+    }
+    write(vitePath, vite);
+  }
+
+  const reactPackages = [];
+  const scanReact = (dir, depth = 0) => {
+    if (depth > 4 || !fs.existsSync(dir)) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (entry.name === 'node_modules' && depth > 0) {
+        const candidate = path.join(dir, entry.name, 'react', 'package.json');
+        if (fs.existsSync(candidate)) reactPackages.push(candidate);
+        continue;
+      }
+      if (entry.isDirectory() && !entry.name.startsWith('.')) scanReact(path.join(dir, entry.name), depth + 1);
+    }
+  };
+  const rootReact = path.join(root, 'node_modules', 'react', 'package.json');
+  if (fs.existsSync(rootReact)) reactPackages.push(rootReact);
+  scanReact(path.join(root, 'node_modules'));
+  const uniqueReactPackages = [...new Set(reactPackages)];
+  if (uniqueReactPackages.length > 1) {
+    console.warn('React runtime QA: nested React packages detected; Vite dedupe is enabled.');
+  } else {
+    console.log('React runtime QA: single React package resolution detected.');
+  }
+}
+console.log('React runtime hardening applied');
+
+// Generated Solar hook-scope QA: hooks must be declared in the component body, not module scope.
+{
+  const solar = read('src/components/solar/LanguageSolarSystem.tsx');
+  const componentStart = Math.min(
+    ...['export function LanguageSolarSystem', 'function LanguageSolarSystem', 'const LanguageSolarSystem'].map((token) => {
+      const index = solar.indexOf(token);
+      return index < 0 ? Number.MAX_SAFE_INTEGER : index;
+    })
+  );
+  const componentReturn = componentStart < Number.MAX_SAFE_INTEGER ? solar.indexOf('\n  return (', componentStart) : -1;
+  if (componentStart === Number.MAX_SAFE_INTEGER || componentReturn < 0) {
+    throw new Error('React QA: LanguageSolarSystem component boundary not found');
+  }
+  const modulePrefix = solar.slice(0, componentStart);
+  if (/\buse(State|Effect|Ref|Memo|Callback|Context|Reducer|LayoutEffect)\s*\(/.test(modulePrefix)) {
+    throw new Error('React QA: hook call found outside LanguageSolarSystem component scope');
+  }
+  console.log('React QA: Solar hook scope verified.');
+}

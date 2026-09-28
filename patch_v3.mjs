@@ -170,3 +170,16 @@ console.log('LingoFlow production App shell applied');
   const appPath = 'src/App.tsx'; let app = read(appPath); app = app.replace(/\\n\\s*useEffect\\(\\(\\) => \\{\\n\\s*const onLanguageConfigure[\\s\\S]*?\\n\\s*\\}, \\[\\]\\);\\n/m, '\\n'); write(appPath, app);
 }
 console.log('LingoFlow clean Solar UX hardening applied');
+
+
+// Last-mile Solar compile guard: always declare the canvas ref before any cleanup/render code uses it.
+{
+  const solarPath = 'src/components/solar/LanguageSolarSystem.tsx';
+  let solar = read(solarPath);
+  if (!solar.includes('const worldLabelCanvasRef')) {
+    const anchor = solar.match(/const\\s+catalogPointsRef\\s*=\\s*useRef[^;]+;/);
+    if (anchor) solar = solar.replace(anchor[0], anchor[0] + "\n  const worldLabelCanvasRef = useRef<HTMLCanvasElement | null>(null);");
+  }
+  write(solarPath, solar);
+}
+console.log('Solar canvas ref guard applied');
